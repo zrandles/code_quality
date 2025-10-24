@@ -1,0 +1,78 @@
+#!/usr/bin/env ruby
+# Daily automated quality scan - runs all apps and syncs to production
+
+require_relative '../config/environment'
+
+LOG_FILE = File.expand_path("~/zac_ecosystem/apps/code_quality/log/daily_scan.log")
+
+def log(message)
+  timestamp = Time.now.strftime("%Y-%m-%d %H:%M:%S")
+  puts "[#{timestamp}] #{message}"
+  File.open(LOG_FILE, 'a') do |f|
+    f.puts "[#{timestamp}] #{message}"
+  end
+end
+
+log "Starting daily quality scan..."
+
+# Discover all apps
+apps_dir = File.expand_path("~/zac_ecosystem/apps")
+discovered = 0
+
+Dir.glob("#{apps_dir}/*").each do |app_path|
+  next unless File.directory?(app_path)
+  app_name = File.basename(app_path)
+  next unless File.exist?(File.join(app_path, "config", "application.rb"))
+
+  App.find_or_create_by(name: app_name) do |a|
+    a.path = app_path
+    a.status = "pending"
+  end
+  discovered += 1
+end
+
+log "Discovered #{discovered} apps"
+
+# Scan all apps
+App.all.each do |app|
+  log "Scanning #{app.name}..."
+
+  begin
+    SecurityScanner.new(app).scan
+    StaticAnalysisScanner.new(app).scan
+    RubocopScanner.new(app).scan
+    DriftScanner.new(app).scan
+
+    # Update app status
+    app.reload
+    has_critical = app.quality_scans.where(severity: ["critical", "high"]).any?
+    app.update!(
+      last_scanned_at: Time.current,
+      status: has_critical ? "critical" : (app.quality_scans.where(severity: "medium").count > 5 ? "warning" : "healthy")
+    )
+
+    log "  ✓ #{app.name}: #{app.status} (#{app.quality_scans.count} issues)"
+  rescue => e
+    log "  ✗ Error scanning #{app.name}: #{e.message}"
+  end
+end
+
+# Sync to production
+log "Syncing database to production..."
+
+local_db = File.expand_path("~/zac_ecosystem/apps/code_quality/storage/development.sqlite3")
+remote_path = "zac@24.199.71.69:/home/zac/code_quality/shared/storage/production.sqlite3"
+
+if File.exist?(local_db)
+  system("scp #{local_db} #{remote_path}")
+  if $?.success?
+    log "✓ Database synced to production"
+  else
+    log "✗ Failed to sync database to production"
+  end
+else
+  log "✗ Local database not found at #{local_db}"
+end
+
+log "Daily quality scan complete!"
+log "View results at: http://24.199.71.69/code_quality"

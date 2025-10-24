@@ -1,0 +1,75 @@
+#!/usr/bin/env ruby
+# Script to discover and scan apps locally, then sync to production database
+
+require_relative '../config/environment'
+
+puts "🔍 Discovering apps in ~/zac_ecosystem/apps..."
+
+apps_dir = File.expand_path("~/zac_ecosystem/apps")
+discovered = 0
+
+Dir.glob("#{apps_dir}/*").each do |app_path|
+  next unless File.directory?(app_path)
+  app_name = File.basename(app_path)
+  next unless File.exist?(File.join(app_path, "config", "application.rb"))
+
+  app = App.find_or_create_by(name: app_name) do |a|
+    a.path = app_path
+    a.status = "pending"
+  end
+
+  puts "  ✓ #{app_name}"
+  discovered += 1
+end
+
+puts "\n📊 Discovered #{discovered} apps\n\n"
+
+# Ask which apps to scan
+puts "Enter app names to scan (comma-separated), or 'all' for all apps:"
+puts "Examples: chromatic,idea_tracker  or  all"
+print "> "
+
+input = $stdin.gets.chomp
+app_names = input.downcase == 'all' ? App.pluck(:name) : input.split(',').map(&:strip)
+
+app_names.each do |app_name|
+  app = App.find_by(name: app_name)
+
+  unless app
+    puts "⚠️  App '#{app_name}' not found, skipping"
+    next
+  end
+
+  puts "\n🔍 Scanning #{app_name}..."
+
+  begin
+    SecurityScanner.new(app).scan
+    puts "  ✓ Security scan complete"
+
+    StaticAnalysisScanner.new(app).scan
+    puts "  ✓ Static analysis complete"
+
+    RubocopScanner.new(app).scan
+    puts "  ✓ RuboCop scan complete"
+
+    DriftScanner.new(app).scan
+    puts "  ✓ Drift detection complete"
+
+    # Update app status
+    app.reload
+    has_critical = app.quality_scans.where(severity: ["critical", "high"]).any?
+    app.update!(
+      last_scanned_at: Time.current,
+      status: has_critical ? "critical" : (app.quality_scans.where(severity: "medium").count > 5 ? "warning" : "healthy")
+    )
+
+    puts "  ✓ Status: #{app.status.upcase}"
+    puts "  ✓ Total issues: #{app.quality_scans.count}"
+  rescue => e
+    puts "  ✗ Error scanning #{app_name}: #{e.message}"
+  end
+end
+
+puts "\n✅ Scan complete!"
+puts "\nView results at: http://localhost:3015/code_quality"
+puts "Or deploy to production to see on server: http://24.199.71.69/code_quality"
