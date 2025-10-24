@@ -1,6 +1,7 @@
 class App < ApplicationRecord
   has_many :quality_scans, dependent: :destroy
   has_many :metric_summaries, dependent: :destroy
+  has_many :scan_runs, dependent: :destroy
 
   validates :name, presence: true, uniqueness: true
   validates :path, presence: true

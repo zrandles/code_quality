@@ -106,19 +106,27 @@
   </div>
 </div>
 
-<script>
-  // Simple tab switching
-  document.addEventListener('DOMContentLoaded', function() {
+<script data-turbo-track="reload">
+  // Simple tab switching - use both DOMContentLoaded and turbo:load
+  function initTabs() {
     const tabLinks = document.querySelectorAll('.tab-link');
     const tabContents = document.querySelectorAll('.tab-content');
 
     tabLinks.forEach(link => {
+      // Remove old listeners
+      link.replaceWith(link.cloneNode(true));
+    });
+
+    // Re-query after replacing
+    const newTabLinks = document.querySelectorAll('.tab-link');
+
+    newTabLinks.forEach(link => {
       link.addEventListener('click', function(e) {
         e.preventDefault();
         const tabName = this.dataset.tab;
 
-        // Remove active classes
-        tabLinks.forEach(l => {
+        // Remove active classes from all tabs
+        newTabLinks.forEach(l => {
           l.classList.remove('border-blue-500', 'text-blue-600');
           l.classList.add('border-transparent', 'text-gray-500');
         });
@@ -131,8 +139,15 @@
         tabContents.forEach(content => content.classList.add('hidden'));
 
         // Show selected content
-        document.getElementById(tabName).classList.remove('hidden');
+        const selectedContent = document.getElementById(tabName);
+        if (selectedContent) {
+          selectedContent.classList.remove('hidden');
+        }
       });
     });
-  });
+  }
+
+  // Initialize on both page load and Turbo navigation
+  document.addEventListener('DOMContentLoaded', initTabs);
+  document.addEventListener('turbo:load', initTabs);
 </script>

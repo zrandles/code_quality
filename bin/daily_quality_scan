@@ -37,6 +37,13 @@ log "Discovered #{discovered} apps"
 App.all.each do |app|
   log "Scanning #{app.name}..."
 
+  # Create scan run record
+  scan_run = app.scan_runs.create!(
+    started_at: Time.current,
+    status: "running",
+    scan_types: ["security", "static_analysis", "rubocop", "drift"]
+  )
+
   begin
     SecurityScanner.new(app).scan
     StaticAnalysisScanner.new(app).scan
@@ -51,8 +58,19 @@ App.all.each do |app|
       status: has_critical ? "critical" : (app.quality_scans.where(severity: "medium").count > 5 ? "warning" : "healthy")
     )
 
+    # Complete scan run
+    scan_run.update!(
+      completed_at: Time.current,
+      total_issues: app.quality_scans.count,
+      status: "completed"
+    )
+
     log "  ✓ #{app.name}: #{app.status} (#{app.quality_scans.count} issues)"
   rescue => e
+    scan_run.update!(
+      completed_at: Time.current,
+      status: "failed"
+    )
     log "  ✗ Error scanning #{app.name}: #{e.message}"
   end
 end

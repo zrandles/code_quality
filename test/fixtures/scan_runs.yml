@@ -1,0 +1,17 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  app: one
+  started_at: 2025-10-24 14:02:58
+  completed_at: 2025-10-24 14:02:58
+  total_issues: 1
+  status: MyString
+  scan_types: MyText
+
+two:
+  app: two
+  started_at: 2025-10-24 14:02:58
+  completed_at: 2025-10-24 14:02:58
+  total_issues: 1
+  status: MyString
+  scan_types: MyText

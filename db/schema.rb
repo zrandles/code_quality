@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_10_24_183302) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_24_210258) do
   create_table "actions", force: :cascade do |t|
     t.integer "player_id", null: false
     t.string "action_type"
@@ -120,6 +120,18 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_24_183302) do
     t.index ["severity"], name: "index_quality_scans_on_severity"
   end
 
+  create_table "scan_runs", force: :cascade do |t|
+    t.integer "app_id", null: false
+    t.datetime "started_at"
+    t.datetime "completed_at"
+    t.integer "total_issues"
+    t.string "status"
+    t.text "scan_types"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["app_id"], name: "index_scan_runs_on_app_id"
+  end
+
   create_table "territories", force: :cascade do |t|
     t.integer "x"
     t.integer "y"
@@ -137,5 +149,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_24_183302) do
   add_foreign_key "player_positions", "territories"
   add_foreign_key "players", "factions"
   add_foreign_key "quality_scans", "apps"
+  add_foreign_key "scan_runs", "apps"
   add_foreign_key "territories", "factions"
 end
