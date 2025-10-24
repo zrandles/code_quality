@@ -28,4 +28,5 @@ threads_count = ENV.fetch("RAILS_MAX_THREADS") { 5 }
 threads threads_count, threads_count
 
 # If you need any hooks or additional configurations, add them here
-plugin :solid_queue
+# Solid Queue plugin disabled - start separately if needed
+# plugin :solid_queue
