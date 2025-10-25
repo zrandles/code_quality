@@ -77,7 +77,7 @@ end
 # Deployment gems
 group :development do
   gem 'capistrano', '~> 3.18.0'
-  gem 'capistrano3-puma', '~> 6.0.0.beta.1'
+  gem 'capistrano3-puma', '~> 7.1.0'
   gem 'capistrano-bundler', '~> 2.1'
   gem 'capistrano-rails', '~> 1.6'
   gem 'capistrano-rbenv', '~> 2.2'
