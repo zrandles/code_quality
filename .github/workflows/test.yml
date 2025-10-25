@@ -1,0 +1,38 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 3.3.4
+        bundler-cache: true
+
+    - name: Install dependencies
+      run: bundle install
+
+    - name: Set up database
+      run: |
+        bin/rails db:create RAILS_ENV=test
+        bin/rails db:schema:load RAILS_ENV=test
+
+    - name: Run tests
+      run: bundle exec rspec
+
+    - name: Upload coverage
+      uses: codecov/codecov-action@v3
+      if: always()
+      with:
+        files: ./coverage/.resultset.json
+        fail_ci_if_error: false
