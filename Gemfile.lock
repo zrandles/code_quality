@@ -90,7 +90,7 @@ GEM
     brakeman (7.1.0)
       racc
     builder (3.3.0)
-    capistrano (3.18.1)
+    capistrano (3.19.2)
       airbrussh (>= 1.0.0)
       i18n
       rake (>= 10.0.0)
@@ -513,7 +513,7 @@ PLATFORMS
 DEPENDENCIES
   bootsnap
   brakeman
-  capistrano (~> 3.18.0)
+  capistrano (~> 3.19.2)
   capistrano-bundler (~> 2.1)
   capistrano-rails (~> 1.6)
   capistrano-rbenv (~> 2.2)
