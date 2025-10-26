@@ -51,6 +51,15 @@ set :assets_roles, [:web, :app]
 set :keep_assets, 2
 
 namespace :deploy do
+  desc 'Run tests before deploying'
+  task :run_tests do
+    run_locally do
+      puts "Running test suite before deployment..."
+      execute :bundle, :exec, :rspec
+      puts "All tests passed! Proceeding with deployment."
+    end
+  end
+
   desc 'Restart Puma server'
   task :restart_puma_sudo do
     on roles(:app) do
@@ -146,8 +155,8 @@ end
 # Hooks
 # NOTE: Do NOT clear deploy:assets:precompile or asset compilation will be disabled!
 # The custom asset tasks defined above in namespace :deploy will run correctly.
-# NOTE: Tests should be run LOCALLY before deploying, not on production server.
 
+before 'deploy:starting', 'deploy:run_tests'
 after 'bundler:install', 'deploy:generate_binstubs'
 before 'deploy:assets:precompile', 'deploy:assets:build_tailwind'
 before 'deploy:publishing', 'deploy:assets:precompile'
