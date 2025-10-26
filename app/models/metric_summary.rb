@@ -1,5 +1,5 @@
 class MetricSummary < ApplicationRecord
-  belongs_to :app
+  belongs_to :scanned_app, foreign_key: :app_id
 
   validates :scan_type, presence: true
 

@@ -1,13 +1,13 @@
 require 'rails_helper'
 
 RSpec.describe RubocopScanner do
-  let(:app) { create(:app, path: "/tmp/test_app") }
-  let(:scanner) { described_class.new(app) }
+  let(:scanned_app) { create(:scanned_app, path: "/tmp/test_app") }
+  let(:scanner) { described_class.new(scanned_app) }
 
   describe '#scan' do
     context 'when app directory does not exist' do
       before do
-        allow(File).to receive(:directory?).with(app.path).and_return(false)
+        allow(File).to receive(:directory?).with(scanned_app.path).and_return(false)
       end
 
       it 'does not run rubocop' do
@@ -17,6 +17,7 @@ RSpec.describe RubocopScanner do
     end
 
     context 'when app directory exists' do
+      let(:output_file) { Rails.root.join("tmp", "rubocop_#{scanned_app.name}.json") }
       let(:rubocop_output) do
         {
           "files" => [
@@ -42,12 +43,12 @@ RSpec.describe RubocopScanner do
       end
 
       before do
-        allow(File).to receive(:directory?).with(app.path).and_return(true)
+        allow(File).to receive(:directory?).with(scanned_app.path).and_return(true)
         allow(scanner).to receive(:system).and_return(true)
         allow(File).to receive(:exist?).and_call_original
-        allow(File).to receive(:exist?).with(/rubocop.*\.json/).and_return(true)
-        allow(File).to receive(:read).with(/rubocop.*\.json/).and_return(rubocop_output.to_json)
-        allow(File).to receive(:delete).and_return(true)
+        allow(File).to receive(:exist?).with(output_file).and_return(true)
+        allow(File).to receive(:read).with(output_file).and_return(rubocop_output.to_json)
+        allow(File).to receive(:delete).with(output_file).and_return(true)
       end
 
       it 'runs rubocop with only high-value cops' do
@@ -58,15 +59,15 @@ RSpec.describe RubocopScanner do
       it 'parses rubocop output and creates quality scans' do
         scanner.scan
 
-        scans = app.quality_scans.where(scan_type: "rubocop")
+        scans = scanned_app.quality_scans.where(scan_type: "rubocop")
         expect(scans.count).to eq(2)
       end
 
       it 'maps severity correctly' do
         scanner.scan
 
-        error_scan = app.quality_scans.find { |s| s.message.include?("Debugger") }
-        warning_scan = app.quality_scans.find { |s| s.message.include?("UnusedMethodArgument") }
+        error_scan = scanned_app.quality_scans.find { |s| s.message.include?("Debugger") }
+        warning_scan = scanned_app.quality_scans.find { |s| s.message.include?("UnusedMethodArgument") }
 
         expect(error_scan.severity).to eq("high")
         expect(warning_scan.severity).to eq("medium")
@@ -75,7 +76,7 @@ RSpec.describe RubocopScanner do
       it 'stores cop name and message' do
         scanner.scan
 
-        scan = app.quality_scans.first
+        scan = scanned_app.quality_scans.first
         expect(scan.message).to include("Lint/")
         expect(scan.message).to include(":")
       end
@@ -83,7 +84,7 @@ RSpec.describe RubocopScanner do
       it 'stores file path and line number' do
         scanner.scan
 
-        scan = app.quality_scans.first
+        scan = scanned_app.quality_scans.first
         expect(scan.file_path).to eq("app/models/user.rb")
         expect(scan.line_number).to eq(25)
       end
@@ -91,7 +92,7 @@ RSpec.describe RubocopScanner do
       it 'creates metric summary' do
         scanner.scan
 
-        summary = app.metric_summaries.find_by(scan_type: "rubocop")
+        summary = scanned_app.metric_summaries.find_by(scan_type: "rubocop")
         expect(summary).to be_present
         expect(summary.total_issues).to eq(2)
         expect(summary.high_severity).to eq(1)
@@ -99,22 +100,22 @@ RSpec.describe RubocopScanner do
       end
 
       it 'deletes temporary output file' do
-        expect(File).to receive(:delete).with(/rubocop.*\.json/)
+        expect(File).to receive(:delete).with(output_file)
         scanner.scan
       end
 
       it 'clears old rubocop scans before creating new ones' do
-        create(:quality_scan, :rubocop, app: app, message: "Old scan")
+        create(:quality_scan, :rubocop, scanned_app: scanned_app, message: "Old scan")
 
         scanner.scan
 
-        expect(app.quality_scans.where(scan_type: "rubocop").pluck(:message)).not_to include("Old scan")
+        expect(scanned_app.quality_scans.where(scan_type: "rubocop").pluck(:message)).not_to include("Old scan")
       end
     end
 
     context 'when rubocop output file does not exist' do
       before do
-        allow(File).to receive(:directory?).with(app.path).and_return(true)
+        allow(File).to receive(:directory?).with(scanned_app.path).and_return(true)
         allow(scanner).to receive(:system).and_return(true)
         allow(File).to receive(:exist?).and_call_original
         allow(File).to receive(:exist?).with(/rubocop.*\.json/).and_return(false)
@@ -122,17 +123,19 @@ RSpec.describe RubocopScanner do
 
       it 'does not create any scans' do
         scanner.scan
-        expect(app.quality_scans.count).to eq(0)
+        expect(scanned_app.quality_scans.count).to eq(0)
       end
     end
 
     context 'when rubocop fails' do
+      let(:output_file) { Rails.root.join("tmp", "rubocop_#{scanned_app.name}.json") }
+
       before do
-        allow(File).to receive(:directory?).with(app.path).and_return(true)
+        allow(File).to receive(:directory?).with(scanned_app.path).and_return(true)
         allow(scanner).to receive(:system).and_return(true)
         allow(File).to receive(:exist?).and_call_original
-        allow(File).to receive(:exist?).with(/rubocop.*\.json/).and_return(true)
-        allow(File).to receive(:read).and_raise(JSON::ParserError)
+        allow(File).to receive(:exist?).with(output_file).and_return(true)
+        allow(File).to receive(:read).with(output_file).and_raise(JSON::ParserError)
         allow(Rails.logger).to receive(:error)
       end
 

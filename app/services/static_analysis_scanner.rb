@@ -48,7 +48,7 @@ class StaticAnalysisScanner
           scan_type: "static_analysis",
           severity: "medium",
           message: "#{smell['smell_type']}: #{smell['message']}",
-          file_path: smell["source"],
+          file_path: file_data["source"],
           line_number: smell["lines"]&.first,
           scanned_at: Time.current
         }

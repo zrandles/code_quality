@@ -2,7 +2,7 @@ class AppsController < ApplicationController
   before_action :set_app, only: [:show, :scan]
 
   def index
-    @apps = App.all.order(:name)
+    @apps = ScannedApp.all.order(:name)
   end
 
   def show
@@ -21,13 +21,13 @@ class AppsController < ApplicationController
 
   def discover
     discover_apps
-    redirect_to apps_path, notice: "Discovered #{App.count} apps"
+    redirect_to apps_path, notice: "Discovered #{ScannedApp.count} apps"
   end
 
   private
 
   def set_app
-    @app = App.find(params[:id])
+    @app = ScannedApp.find(params[:id])
   end
 
   def discover_apps
@@ -41,7 +41,7 @@ class AppsController < ApplicationController
       # Skip non-Rails apps
       next unless File.exist?(File.join(app_path, "config", "application.rb"))
 
-      App.find_or_create_by(name: app_name) do |app|
+      ScannedApp.find_or_create_by(name: app_name) do |app|
         app.path = app_path
         app.status = "pending"
       end

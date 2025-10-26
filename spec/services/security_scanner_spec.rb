@@ -1,13 +1,13 @@
 require 'rails_helper'
 
 RSpec.describe SecurityScanner do
-  let(:app) { create(:app, path: "/tmp/test_app") }
-  let(:scanner) { described_class.new(app) }
+  let(:scanned_app) { create(:scanned_app, path: "/tmp/test_app") }
+  let(:scanner) { described_class.new(scanned_app) }
 
   describe '#scan' do
     context 'when app directory does not exist' do
       before do
-        allow(File).to receive(:directory?).with(app.path).and_return(false)
+        allow(File).to receive(:directory?).with(scanned_app.path).and_return(false)
       end
 
       it 'does not run brakeman' do
@@ -17,6 +17,7 @@ RSpec.describe SecurityScanner do
     end
 
     context 'when app directory exists' do
+      let(:output_file) { Rails.root.join("tmp", "brakeman_#{scanned_app.name}.json") }
       let(:brakeman_output) do
         {
           "warnings" => [
@@ -39,12 +40,12 @@ RSpec.describe SecurityScanner do
       end
 
       before do
-        allow(File).to receive(:directory?).with(app.path).and_return(true)
+        allow(File).to receive(:directory?).with(scanned_app.path).and_return(true)
         allow(scanner).to receive(:system).and_return(true)
         allow(File).to receive(:exist?).and_call_original
-        allow(File).to receive(:exist?).with(/brakeman.*\.json/).and_return(true)
-        allow(File).to receive(:read).with(/brakeman.*\.json/).and_return(brakeman_output.to_json)
-        allow(File).to receive(:delete).and_return(true)
+        allow(File).to receive(:exist?).with(output_file).and_return(true)
+        allow(File).to receive(:read).with(output_file).and_return(brakeman_output.to_json)
+        allow(File).to receive(:delete).with(output_file).and_return(true)
       end
 
       it 'runs brakeman command' do
@@ -55,24 +56,24 @@ RSpec.describe SecurityScanner do
       it 'parses brakeman results and creates quality scans' do
         scanner.scan
 
-        scans = app.quality_scans.where(scan_type: "security")
+        scans = scanned_app.quality_scans.where(scan_type: "security")
         expect(scans.count).to eq(2)
       end
 
       it 'maps confidence to severity correctly' do
         scanner.scan
 
-        high_confidence_scan = app.quality_scans.find_by(severity: "critical")
+        high_confidence_scan = scanned_app.quality_scans.find_by(severity: "critical")
         expect(high_confidence_scan.message).to include("SQL Injection")
 
-        medium_confidence_scan = app.quality_scans.find_by(severity: "high")
+        medium_confidence_scan = scanned_app.quality_scans.find_by(severity: "high")
         expect(medium_confidence_scan.message).to include("Mass Assignment")
       end
 
       it 'stores file path and line number' do
         scanner.scan
 
-        scan = app.quality_scans.first
+        scan = scanned_app.quality_scans.first
         expect(scan.file_path).to eq("app/models/user.rb")
         expect(scan.line_number).to eq(42)
       end
@@ -80,47 +81,51 @@ RSpec.describe SecurityScanner do
       it 'creates metric summary' do
         scanner.scan
 
-        summary = app.metric_summaries.find_by(scan_type: "security")
+        summary = scanned_app.metric_summaries.find_by(scan_type: "security")
         expect(summary).to be_present
         expect(summary.total_issues).to eq(2)
         expect(summary.high_severity).to eq(2) # Both critical and high map to high_severity
       end
 
       it 'deletes temporary output file' do
-        expect(File).to receive(:delete).with(/brakeman.*\.json/)
+        expect(File).to receive(:delete).with(output_file)
         scanner.scan
       end
 
       it 'clears old security scans before creating new ones' do
-        create(:quality_scan, :security, app: app, message: "Old scan")
+        create(:quality_scan, :security, scanned_app: scanned_app, message: "Old scan")
 
         scanner.scan
 
-        expect(app.quality_scans.where(scan_type: "security").pluck(:message)).not_to include("Old scan")
+        expect(scanned_app.quality_scans.where(scan_type: "security").pluck(:message)).not_to include("Old scan")
       end
     end
 
     context 'when brakeman output file does not exist' do
+      let(:output_file) { Rails.root.join("tmp", "brakeman_#{scanned_app.name}.json") }
+
       before do
-        allow(File).to receive(:directory?).with(app.path).and_return(true)
+        allow(File).to receive(:directory?).with(scanned_app.path).and_return(true)
         allow(scanner).to receive(:system).and_return(true)
         allow(File).to receive(:exist?).and_call_original
-        allow(File).to receive(:exist?).with(/brakeman.*\.json/).and_return(false)
+        allow(File).to receive(:exist?).with(output_file).and_return(false)
       end
 
       it 'does not create any scans' do
         scanner.scan
-        expect(app.quality_scans.count).to eq(0)
+        expect(scanned_app.quality_scans.count).to eq(0)
       end
     end
 
     context 'when brakeman fails' do
+      let(:output_file) { Rails.root.join("tmp", "brakeman_#{scanned_app.name}.json") }
+
       before do
-        allow(File).to receive(:directory?).with(app.path).and_return(true)
+        allow(File).to receive(:directory?).with(scanned_app.path).and_return(true)
         allow(scanner).to receive(:system).and_return(true)
         allow(File).to receive(:exist?).and_call_original
-        allow(File).to receive(:exist?).with(/brakeman.*\.json/).and_return(true)
-        allow(File).to receive(:read).and_raise(JSON::ParserError)
+        allow(File).to receive(:exist?).with(output_file).and_return(true)
+        allow(File).to receive(:read).with(output_file).and_raise(JSON::ParserError)
         allow(Rails.logger).to receive(:error)
       end
 

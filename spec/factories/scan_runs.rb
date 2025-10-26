@@ -1,6 +1,6 @@
 FactoryBot.define do
   factory :scan_run do
-    association :app
+    association :scanned_app
     scan_types { ["security", "static_analysis", "rubocop"] }
     started_at { Time.current }
     completed_at { nil }

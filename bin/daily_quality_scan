@@ -24,7 +24,7 @@ Dir.glob("#{apps_dir}/*").each do |app_path|
   app_name = File.basename(app_path)
   next unless File.exist?(File.join(app_path, "config", "application.rb"))
 
-  App.find_or_create_by(name: app_name) do |a|
+  ScannedApp.find_or_create_by(name: app_name) do |a|
     a.path = app_path
     a.status = "pending"
   end
@@ -34,7 +34,7 @@ end
 log "Discovered #{discovered} apps"
 
 # Scan all apps
-App.all.each do |app|
+ScannedApp.all.each do |app|
   log "Scanning #{app.name}..."
 
   # Create scan run record

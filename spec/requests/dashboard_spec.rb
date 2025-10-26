@@ -2,13 +2,13 @@ require 'rails_helper'
 
 RSpec.describe "Dashboard", type: :request do
   describe "GET /" do
-    let!(:healthy_app) { create(:app, :healthy) }
-    let!(:warning_app) { create(:app, :warning) }
-    let!(:critical_app) { create(:app, :critical) }
+    let!(:healthy_app) { create(:scanned_app, :healthy) }
+    let!(:warning_app) { create(:scanned_app, :warning) }
+    let!(:critical_app) { create(:scanned_app, :critical) }
 
     before do
-      create_list(:quality_scan, 3, :critical, app: healthy_app)
-      create_list(:quality_scan, 5, :medium, app: warning_app)
+      create_list(:quality_scan, 3, :critical, scanned_app: healthy_app)
+      create_list(:quality_scan, 5, :medium, scanned_app: warning_app)
     end
 
     it "returns successful response" do
@@ -61,8 +61,8 @@ RSpec.describe "Dashboard", type: :request do
     it "includes app association in recent scans" do
       get "/code_quality"
       # Verify eager loading worked (no N+1 queries)
-      # Just check that app is accessible without additional queries
-      assigns(:recent_scans).each(&:app)
+      # Just check that scanned_app is accessible without additional queries
+      assigns(:recent_scans).each(&:scanned_app)
     end
   end
 end

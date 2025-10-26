@@ -1,6 +1,6 @@
 FactoryBot.define do
   factory :quality_scan do
-    association :app
+    association :scanned_app
     scan_type { "security" }
     severity { "medium" }
     message { "Sample quality issue detected" }

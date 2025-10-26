@@ -2,7 +2,7 @@ class AppScannerJob < ApplicationJob
   queue_as :default
 
   def perform(app_id)
-    app = App.find(app_id)
+    app = ScannedApp.find(app_id)
 
     Rails.logger.info("Starting quality scan for #{app.name}")
 

@@ -2,7 +2,7 @@ require 'rails_helper'
 
 RSpec.describe MetricSummary, type: :model do
   describe 'associations' do
-    it { should belong_to(:app) }
+    it { should belong_to(:scanned_app) }
   end
 
   describe 'validations' do
@@ -10,9 +10,9 @@ RSpec.describe MetricSummary, type: :model do
   end
 
   describe 'scopes' do
-    let(:app) { create(:app) }
-    let!(:recent_summary) { create(:metric_summary, app: app, scanned_at: 1.day.ago) }
-    let!(:old_summary) { create(:metric_summary, app: app, scanned_at: 10.days.ago) }
+    let(:scanned_app) { create(:scanned_app) }
+    let!(:recent_summary) { create(:metric_summary, scanned_app: scanned_app, scanned_at: 1.day.ago) }
+    let!(:old_summary) { create(:metric_summary, scanned_app: scanned_app, scanned_at: 10.days.ago) }
 
     describe '.recent' do
       it 'returns summaries from last 7 days' do
@@ -22,8 +22,8 @@ RSpec.describe MetricSummary, type: :model do
     end
 
     describe '.by_type' do
-      let!(:security_summary) { create(:metric_summary, :security, app: app) }
-      let!(:rubocop_summary) { create(:metric_summary, :rubocop, app: app) }
+      let!(:security_summary) { create(:metric_summary, :security, scanned_app: scanned_app) }
+      let!(:rubocop_summary) { create(:metric_summary, :rubocop, scanned_app: scanned_app) }
 
       it 'filters by scan type' do
         expect(MetricSummary.by_type("security")).to include(security_summary)

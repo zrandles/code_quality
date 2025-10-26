@@ -1,6 +1,6 @@
 FactoryBot.define do
   factory :metric_summary do
-    association :app
+    association :scanned_app
     scan_type { "security" }
     total_issues { 10 }
     high_severity { 2 }

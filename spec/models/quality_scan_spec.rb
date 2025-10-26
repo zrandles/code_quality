@@ -2,7 +2,7 @@ require 'rails_helper'
 
 RSpec.describe QualityScan, type: :model do
   describe 'associations' do
-    it { should belong_to(:app) }
+    it { should belong_to(:scanned_app) }
   end
 
   describe 'validations' do
@@ -28,9 +28,9 @@ RSpec.describe QualityScan, type: :model do
   end
 
   describe 'scopes' do
-    let(:app) { create(:app) }
-    let!(:recent_scan) { create(:quality_scan, app: app, scanned_at: 1.day.ago) }
-    let!(:old_scan) { create(:quality_scan, app: app, scanned_at: 10.days.ago) }
+    let(:scanned_app) { create(:scanned_app) }
+    let!(:recent_scan) { create(:quality_scan, scanned_app: scanned_app, scanned_at: 1.day.ago) }
+    let!(:old_scan) { create(:quality_scan, scanned_app: scanned_app, scanned_at: 10.days.ago) }
 
     describe '.recent' do
       it 'returns scans from last 7 days' do
@@ -40,8 +40,8 @@ RSpec.describe QualityScan, type: :model do
     end
 
     describe '.by_type' do
-      let!(:security_scan) { create(:quality_scan, :security, app: app) }
-      let!(:rubocop_scan) { create(:quality_scan, :rubocop, app: app) }
+      let!(:security_scan) { create(:quality_scan, :security, scanned_app: scanned_app) }
+      let!(:rubocop_scan) { create(:quality_scan, :rubocop, scanned_app: scanned_app) }
 
       it 'filters by scan type' do
         expect(QualityScan.by_type("security")).to include(security_scan)
@@ -50,8 +50,8 @@ RSpec.describe QualityScan, type: :model do
     end
 
     describe '.by_severity' do
-      let!(:critical_scan) { create(:quality_scan, :critical, app: app) }
-      let!(:low_scan) { create(:quality_scan, :low, app: app) }
+      let!(:critical_scan) { create(:quality_scan, :critical, scanned_app: scanned_app) }
+      let!(:low_scan) { create(:quality_scan, :low, scanned_app: scanned_app) }
 
       it 'filters by severity' do
         expect(QualityScan.by_severity("critical")).to include(critical_scan)
@@ -60,9 +60,9 @@ RSpec.describe QualityScan, type: :model do
     end
 
     describe '.critical_issues' do
-      let!(:critical_scan) { create(:quality_scan, severity: "critical", app: app) }
-      let!(:high_scan) { create(:quality_scan, severity: "high", app: app) }
-      let!(:medium_scan) { create(:quality_scan, severity: "medium", app: app) }
+      let!(:critical_scan) { create(:quality_scan, severity: "critical", scanned_app: scanned_app) }
+      let!(:high_scan) { create(:quality_scan, severity: "high", scanned_app: scanned_app) }
+      let!(:medium_scan) { create(:quality_scan, severity: "medium", scanned_app: scanned_app) }
 
       it 'returns critical and high severity scans' do
         critical_issues = QualityScan.critical_issues

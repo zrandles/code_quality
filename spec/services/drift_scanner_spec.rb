@@ -1,13 +1,13 @@
 require 'rails_helper'
 
 RSpec.describe DriftScanner do
-  let(:app) { create(:app, name: "test_app", path: "/tmp/test_app") }
-  let(:scanner) { described_class.new(app) }
+  let(:scanned_app) { create(:scanned_app, name: "test_app", path: "/tmp/test_app") }
+  let(:scanner) { described_class.new(scanned_app) }
 
   describe '#scan' do
     context 'when app directory does not exist' do
       before do
-        allow(File).to receive(:directory?).with(app.path).and_return(false)
+        allow(File).to receive(:directory?).with(scanned_app.path).and_return(false)
       end
 
       it 'does not perform any checks' do
@@ -17,7 +17,7 @@ RSpec.describe DriftScanner do
     end
 
     context 'when app is golden_deployment' do
-      let(:golden_app) { create(:app, name: "golden_deployment", path: "/tmp/golden") }
+      let(:golden_app) { create(:scanned_app, name: "golden_deployment", path: "/tmp/golden") }
       let(:golden_scanner) { described_class.new(golden_app) }
 
       before do
@@ -32,19 +32,22 @@ RSpec.describe DriftScanner do
 
     context 'when app directory exists' do
       before do
-        allow(File).to receive(:directory?).with(app.path).and_return(true)
+        allow(File).to receive(:directory?).with(scanned_app.path).and_return(true)
       end
 
       describe 'deployment config check' do
         context 'when deploy.rb is missing' do
           before do
-            allow(File).to receive(:exist?).with(/deploy\.rb/).and_return(false)
+            allow(File).to receive(:exist?).and_call_original
+            allow(File).to receive(:exist?).with("#{scanned_app.path}/config/deploy.rb").and_return(false)
+            allow(File).to receive(:exist?).with("#{scanned_app.path}/Gemfile.lock").and_return(false)
+            allow(File).to receive(:exist?).with("#{scanned_app.path}/config/environments/production.rb").and_return(false)
           end
 
           it 'creates critical drift issue' do
             scanner.scan
 
-            scan = app.quality_scans.find_by(scan_type: "drift")
+            scan = scanned_app.quality_scans.find_by(scan_type: "drift")
             expect(scan).to be_present
             expect(scan.severity).to eq("critical")
             expect(scan.message).to include("Missing config/deploy.rb")
@@ -56,16 +59,16 @@ RSpec.describe DriftScanner do
 
           before do
             allow(File).to receive(:exist?).and_call_original
-            allow(File).to receive(:exist?).with(/deploy\.rb/).and_return(true)
-            allow(File).to receive(:read).with(/deploy\.rb/).and_return(deploy_content)
-            allow(File).to receive(:exist?).with(/Gemfile\.lock/).and_return(false)
-            allow(File).to receive(:exist?).with(/production\.rb/).and_return(false)
+            allow(File).to receive(:exist?).with("#{scanned_app.path}/config/deploy.rb").and_return(true)
+            allow(File).to receive(:read).with("#{scanned_app.path}/config/deploy.rb").and_return(deploy_content)
+            allow(File).to receive(:exist?).with("#{scanned_app.path}/Gemfile.lock").and_return(false)
+            allow(File).to receive(:exist?).with("#{scanned_app.path}/config/environments/production.rb").and_return(false)
           end
 
           it 'creates high severity drift issue' do
             scanner.scan
 
-            scan = app.quality_scans.find { |s| s.message.include?(":application") }
+            scan = scanned_app.quality_scans.find { |s| s.message.include?(":application") }
             expect(scan).to be_present
             expect(scan.severity).to eq("high")
           end
@@ -106,7 +109,7 @@ RSpec.describe DriftScanner do
         it 'detects Rails version drift' do
           scanner.scan
 
-          scan = app.quality_scans.find { |s| s.message.include?("Rails version") }
+          scan = scanned_app.quality_scans.find { |s| s.message.include?("Rails version") }
           expect(scan).to be_present
           expect(scan.severity).to eq("medium")
           expect(scan.message).to include("8.0.0")
@@ -116,20 +119,23 @@ RSpec.describe DriftScanner do
 
       describe 'Tailwind setup check' do
         context 'when production.rb missing Tailwind build task' do
-          let(:production_content) { "# Production config without tailwindcss:build" }
+          let(:deploy_content) { 'set :application, "test_app"' }
+          let(:production_content) { "# Production config without Tailwind CSS" }
 
           before do
             allow(File).to receive(:exist?).and_call_original
-            allow(File).to receive(:exist?).with(/deploy\.rb/).and_return(false)
-            allow(File).to receive(:exist?).with(/Gemfile\.lock/).and_return(false)
-            allow(File).to receive(:exist?).with(/production\.rb/).and_return(true)
-            allow(File).to receive(:read).with(/production\.rb/).and_return(production_content)
+            allow(File).to receive(:read).and_call_original
+            allow(File).to receive(:exist?).with(File.join(scanned_app.path, "config", "deploy.rb")).and_return(true)
+            allow(File).to receive(:read).with(File.join(scanned_app.path, "config", "deploy.rb")).and_return(deploy_content)
+            allow(File).to receive(:exist?).with(File.join(scanned_app.path, "Gemfile.lock")).and_return(false)
+            allow(File).to receive(:exist?).with(File.join(scanned_app.path, "config", "environments", "production.rb")).and_return(true)
+            allow(File).to receive(:read).with(File.join(scanned_app.path, "config", "environments", "production.rb")).and_return(production_content)
           end
 
           it 'creates medium severity drift issue' do
             scanner.scan
 
-            scan = app.quality_scans.find { |s| s.message.include?("Tailwind") }
+            scan = scanned_app.quality_scans.find { |s| s.message.include?("Tailwind") }
             expect(scan).to be_present
             expect(scan.severity).to eq("medium")
           end
@@ -138,40 +144,46 @@ RSpec.describe DriftScanner do
 
       describe 'path-based routing check' do
         context 'when production.rb missing relative_url_root' do
-          let(:production_content) { "# Production config without relative_url_root" }
+          let(:deploy_content) { 'set :application, "test_app"' }
+          let(:production_content) { "# Production config without path-based routing" }
 
           before do
             allow(File).to receive(:exist?).and_call_original
-            allow(File).to receive(:exist?).with(/deploy\.rb/).and_return(false)
-            allow(File).to receive(:exist?).with(/Gemfile\.lock/).and_return(false)
-            allow(File).to receive(:exist?).with(/production\.rb/).and_return(true)
-            allow(File).to receive(:read).with(/production\.rb/).and_return(production_content)
+            allow(File).to receive(:read).and_call_original
+            allow(File).to receive(:exist?).with(File.join(scanned_app.path, "config", "deploy.rb")).and_return(true)
+            allow(File).to receive(:read).with(File.join(scanned_app.path, "config", "deploy.rb")).and_return(deploy_content)
+            allow(File).to receive(:exist?).with(File.join(scanned_app.path, "Gemfile.lock")).and_return(false)
+            allow(File).to receive(:exist?).with(File.join(scanned_app.path, "config", "environments", "production.rb")).and_return(true)
+            allow(File).to receive(:read).with(File.join(scanned_app.path, "config", "environments", "production.rb")).and_return(production_content)
           end
 
           it 'creates high severity drift issue' do
             scanner.scan
 
-            scan = app.quality_scans.find { |s| s.message.include?("relative_url_root") }
+            scan = scanned_app.quality_scans.find { |s| s.message.include?("relative_url_root") }
             expect(scan).to be_present
             expect(scan.severity).to eq("high")
           end
         end
 
         context 'when relative_url_root is configured' do
+          let(:deploy_content) { 'set :application, "test_app"' }
           let(:production_content) { 'config.relative_url_root = "/app_name"' }
 
           before do
             allow(File).to receive(:exist?).and_call_original
-            allow(File).to receive(:exist?).with(/deploy\.rb/).and_return(false)
-            allow(File).to receive(:exist?).with(/Gemfile\.lock/).and_return(false)
-            allow(File).to receive(:exist?).with(/production\.rb/).and_return(true)
-            allow(File).to receive(:read).with(/production\.rb/).and_return(production_content)
+            allow(File).to receive(:read).and_call_original
+            allow(File).to receive(:exist?).with(File.join(scanned_app.path, "config", "deploy.rb")).and_return(true)
+            allow(File).to receive(:read).with(File.join(scanned_app.path, "config", "deploy.rb")).and_return(deploy_content)
+            allow(File).to receive(:exist?).with(File.join(scanned_app.path, "Gemfile.lock")).and_return(false)
+            allow(File).to receive(:exist?).with(File.join(scanned_app.path, "config", "environments", "production.rb")).and_return(true)
+            allow(File).to receive(:read).with(File.join(scanned_app.path, "config", "environments", "production.rb")).and_return(production_content)
           end
 
           it 'does not create drift issue for relative_url_root' do
             scanner.scan
 
-            scan = app.quality_scans.find { |s| s.message.include?("relative_url_root") }
+            scan = scanned_app.quality_scans.find { |s| s.message.include?("relative_url_root") }
             expect(scan).to be_nil
           end
         end
@@ -180,32 +192,32 @@ RSpec.describe DriftScanner do
       describe 'summary creation' do
         before do
           allow(File).to receive(:exist?).and_call_original
-          allow(File).to receive(:exist?).with(/deploy\.rb/).and_return(false)
-          allow(File).to receive(:exist?).with(/Gemfile\.lock/).and_return(false)
-          allow(File).to receive(:exist?).with(/production\.rb/).and_return(false)
+          allow(File).to receive(:exist?).with("#{scanned_app.path}/config/deploy.rb").and_return(false)
+          allow(File).to receive(:exist?).with("#{scanned_app.path}/Gemfile.lock").and_return(false)
+          allow(File).to receive(:exist?).with("#{scanned_app.path}/config/environments/production.rb").and_return(false)
         end
 
         it 'creates metric summary for drift scans' do
           scanner.scan
 
-          summary = app.metric_summaries.find_by(scan_type: "drift")
+          summary = scanned_app.metric_summaries.find_by(scan_type: "drift")
           expect(summary).to be_present
         end
 
         it 'clears old drift scans before creating new ones' do
-          create(:quality_scan, :drift, app: app, message: "Old drift scan")
+          create(:quality_scan, :drift, scanned_app: scanned_app, message: "Old drift scan")
 
           scanner.scan
 
           # After scan, old scan should be deleted
-          expect(app.quality_scans.where(scan_type: "drift").pluck(:message)).not_to include("Old drift scan")
+          expect(scanned_app.quality_scans.where(scan_type: "drift").pluck(:message)).not_to include("Old drift scan")
         end
       end
 
       describe 'error handling' do
         before do
           allow(File).to receive(:exist?).and_call_original
-          allow(File).to receive(:exist?).with(/deploy\.rb/).and_return(true)
+          allow(File).to receive(:exist?).with("#{scanned_app.path}/config/deploy.rb").and_return(true)
           allow(File).to receive(:read).and_raise(StandardError.new("Read error"))
           allow(Rails.logger).to receive(:error)
         end

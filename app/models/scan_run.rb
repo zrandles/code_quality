@@ -1,5 +1,5 @@
 class ScanRun < ApplicationRecord
-  belongs_to :app
+  belongs_to :scanned_app, foreign_key: :app_id
 
   serialize :scan_types, coder: JSON
 

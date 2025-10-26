@@ -1,5 +1,5 @@
 FactoryBot.define do
-  factory :app do
+  factory :scanned_app do
     sequence(:name) { |n| "test_app_#{n}" }
     sequence(:path) { |n| "/tmp/test_apps/test_app_#{n}" }
     status { "healthy" }
@@ -26,17 +26,17 @@ FactoryBot.define do
     end
 
     trait :with_scans do
-      after(:create) do |app|
-        create_list(:quality_scan, 3, app: app, scan_type: "security")
-        create_list(:quality_scan, 2, app: app, scan_type: "static_analysis")
+      after(:create) do |scanned_app|
+        create_list(:quality_scan, 3, scanned_app: scanned_app, scan_type: "security")
+        create_list(:quality_scan, 2, scanned_app: scanned_app, scan_type: "static_analysis")
       end
     end
 
     trait :with_summaries do
-      after(:create) do |app|
-        create(:metric_summary, app: app, scan_type: "security")
-        create(:metric_summary, app: app, scan_type: "static_analysis")
-        create(:metric_summary, app: app, scan_type: "rubocop")
+      after(:create) do |scanned_app|
+        create(:metric_summary, scanned_app: scanned_app, scan_type: "security")
+        create(:metric_summary, scanned_app: scanned_app, scan_type: "static_analysis")
+        create(:metric_summary, scanned_app: scanned_app, scan_type: "rubocop")
       end
     end
   end

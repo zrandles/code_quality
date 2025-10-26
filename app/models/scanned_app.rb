@@ -1,7 +1,7 @@
-class App < ApplicationRecord
-  has_many :quality_scans, dependent: :destroy
-  has_many :metric_summaries, dependent: :destroy
-  has_many :scan_runs, dependent: :destroy
+class ScannedApp < ApplicationRecord
+  has_many :quality_scans, dependent: :destroy, foreign_key: :app_id
+  has_many :metric_summaries, dependent: :destroy, foreign_key: :app_id
+  has_many :scan_runs, dependent: :destroy, foreign_key: :app_id
 
   validates :name, presence: true, uniqueness: true
   validates :path, presence: true

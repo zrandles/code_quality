@@ -13,7 +13,7 @@ Dir.glob("#{apps_dir}/*").each do |app_path|
   app_name = File.basename(app_path)
   next unless File.exist?(File.join(app_path, "config", "application.rb"))
 
-  app = App.find_or_create_by(name: app_name) do |a|
+  app = ScannedApp.find_or_create_by(name: app_name) do |a|
     a.path = app_path
     a.status = "pending"
   end
@@ -30,10 +30,10 @@ puts "Examples: chromatic,idea_tracker  or  all"
 print "> "
 
 input = $stdin.gets.chomp
-app_names = input.downcase == 'all' ? App.pluck(:name) : input.split(',').map(&:strip)
+app_names = input.downcase == 'all' ? ScannedApp.pluck(:name) : input.split(',').map(&:strip)
 
 app_names.each do |app_name|
-  app = App.find_by(name: app_name)
+  app = ScannedApp.find_by(name: app_name)
 
   unless app
     puts "⚠️  App '#{app_name}' not found, skipping"

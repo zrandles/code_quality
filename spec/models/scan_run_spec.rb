@@ -2,15 +2,15 @@ require 'rails_helper'
 
 RSpec.describe ScanRun, type: :model do
   describe 'associations' do
-    it { should belong_to(:app) }
+    it { should belong_to(:scanned_app) }
   end
 
   describe 'scopes' do
-    let(:app) { create(:app) }
+    let(:scanned_app) { create(:scanned_app) }
 
     describe '.recent' do
       it 'returns last 10 scan runs ordered by started_at desc' do
-        15.times { create(:scan_run, app: app, started_at: rand(1..30).days.ago) }
+        15.times { create(:scan_run, scanned_app: scanned_app, started_at: rand(1..30).days.ago) }
 
         recent_runs = ScanRun.recent
         expect(recent_runs.count).to eq(10)
@@ -21,8 +21,8 @@ RSpec.describe ScanRun, type: :model do
     end
 
     describe '.completed' do
-      let!(:completed_run) { create(:scan_run, :completed, app: app) }
-      let!(:in_progress_run) { create(:scan_run, :in_progress, app: app) }
+      let!(:completed_run) { create(:scan_run, :completed, scanned_app: scanned_app) }
+      let!(:in_progress_run) { create(:scan_run, :in_progress, scanned_app: scanned_app) }
 
       it 'returns only completed scan runs' do
         expect(ScanRun.completed).to include(completed_run)
