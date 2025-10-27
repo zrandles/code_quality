@@ -156,7 +156,8 @@ end
 # NOTE: Do NOT clear deploy:assets:precompile or asset compilation will be disabled!
 # The custom asset tasks defined above in namespace :deploy will run correctly.
 
-before 'deploy:starting', 'deploy:run_tests'
+# Temporarily disabled - no tests in this app yet
+# before 'deploy:starting', 'deploy:run_tests'
 after 'bundler:install', 'deploy:generate_binstubs'
 before 'deploy:assets:precompile', 'deploy:assets:build_tailwind'
 before 'deploy:publishing', 'deploy:assets:precompile'

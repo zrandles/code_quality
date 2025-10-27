@@ -11,8 +11,8 @@ state_path "#{shared_dir}/tmp/pids/puma.state"
 # Logging
 stdout_redirect "#{shared_dir}/log/puma.stdout.log", "#{shared_dir}/log/puma.stderr.log", true
 
-# Set workers
-workers ENV.fetch("WEB_CONCURRENCY") { 2 }
+# Set workers (1 worker for low-traffic infrastructure app)
+workers ENV.fetch("WEB_CONCURRENCY") { 1 }
 
 # Preload app
 preload_app!
@@ -23,8 +23,8 @@ plugin :tmp_restart
 # Set the environment
 environment ENV.fetch("RAILS_ENV") { "production" }
 
-# Include any other Puma settings you need
-threads_count = ENV.fetch("RAILS_MAX_THREADS") { 5 }
+# Include any other Puma settings you need (3 threads for low-traffic)
+threads_count = ENV.fetch("RAILS_MAX_THREADS") { 3 }
 threads threads_count, threads_count
 
 # If you need any hooks or additional configurations, add them here
