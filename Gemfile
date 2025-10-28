@@ -83,4 +83,4 @@ group :development do
   gem 'capistrano-rbenv', '~> 2.2'
 end
 
-gem "tailwindcss-rails", "~> 4.3"
+gem "tailwindcss-rails", "~> 4.4"
