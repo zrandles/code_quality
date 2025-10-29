@@ -1,7 +1,7 @@
 class QualityScan < ApplicationRecord
   belongs_to :scanned_app, foreign_key: :app_id
 
-  SCAN_TYPES = %w[security static_analysis rubocop test_coverage js_complexity architecture drift].freeze
+  SCAN_TYPES = %w[security static_analysis reek flog flay rubocop test_coverage js_complexity architecture drift].freeze
   SEVERITIES = %w[critical high medium low info].freeze
 
   validates :scan_type, inclusion: { in: SCAN_TYPES }

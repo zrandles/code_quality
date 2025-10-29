@@ -4,6 +4,9 @@ class StaticAnalysisScanner
   def initialize(app)
     @app = app
     @results = []
+    @reek_results = []
+    @flog_results = []
+    @flay_results = []
   end
 
   def scan
@@ -44,14 +47,16 @@ class StaticAnalysisScanner
       next unless file_data["smells"].is_a?(Array)
 
       file_data["smells"].each do |smell|
-        @results << {
-          scan_type: "static_analysis",
+        result = {
+          scan_type: "reek",
           severity: "medium",
           message: "#{smell['smell_type']}: #{smell['message']}",
           file_path: file_data["source"],
           line_number: smell["lines"]&.first,
           scanned_at: Time.current
         }
+        @results << result
+        @reek_results << result
       end
     end
   end
@@ -73,16 +78,16 @@ class StaticAnalysisScanner
         complexity = line.match(/^\s*(\d+\.\d+):/)[1].to_f
         method_info = line.match(/:\s+(.+)/)[1]
 
-        if complexity > 20 # Only flag high complexity
-          @results << {
-            scan_type: "static_analysis",
-            severity: complexity > 40 ? "high" : "medium",
-            message: "High complexity (#{complexity.round(1)}): #{method_info}",
-            file_path: current_file,
-            metric_value: complexity,
-            scanned_at: Time.current
-          }
-        end
+        result = {
+          scan_type: "flog",
+          severity: complexity > 40 ? "high" : (complexity > 20 ? "medium" : "low"),
+          message: "Complexity (#{complexity.round(1)}): #{method_info}",
+          file_path: current_file,
+          metric_value: complexity,
+          scanned_at: Time.current
+        }
+        @results << result
+        @flog_results << result
       elsif line.match?(/^(.+):\s+\(/)
         current_file = line.match(/^(.+):\s+\(/)[1]
       end
@@ -102,42 +107,85 @@ class StaticAnalysisScanner
     lines.each do |line|
       # Look for duplicated code
       if line.match?(/Similar code found/)
-        @results << {
-          scan_type: "static_analysis",
+        result = {
+          scan_type: "flay",
           severity: "low",
           message: line.strip,
           scanned_at: Time.current
         }
+        @results << result
+        @flay_results << result
       elsif match = line.match(/(.+\.rb):(\d+)/)
         # File locations for duplicated code
         @results.last[:file_path] ||= match[1] if @results.any?
         @results.last[:line_number] ||= match[2].to_i if @results.any?
+        @flay_results.last[:file_path] ||= match[1] if @flay_results.any?
+        @flay_results.last[:line_number] ||= match[2].to_i if @flay_results.any?
       end
     end
   end
 
   def save_results
-    # Clear old static analysis scans
-    app.quality_scans.where(scan_type: "static_analysis").delete_all
+    # Clear old static analysis scans (including new scan types)
+    app.quality_scans.where(scan_type: ["static_analysis", "reek", "flog", "flay"]).delete_all
 
     # Create new scans
     @results.each do |result|
       app.quality_scans.create!(result)
     end
 
-    # Create summary
-    create_summary
+    # Create summaries for each tool
+    create_summaries
   end
 
-  def create_summary
-    scans = app.quality_scans.where(scan_type: "static_analysis")
+  def create_summaries
+    # Create Reek summary (code smells)
+    create_reek_summary
 
-    app.metric_summaries.find_or_initialize_by(scan_type: "static_analysis").tap do |summary|
+    # Create Flog summary (complexity)
+    create_flog_summary
+
+    # Create Flay summary (duplication)
+    create_flay_summary
+  end
+
+  def create_reek_summary
+    scans = app.quality_scans.where(scan_type: "reek")
+
+    app.metric_summaries.find_or_initialize_by(scan_type: "reek").tap do |summary|
+      summary.total_issues = scans.count
+      summary.high_severity = scans.where(severity: ["critical", "high"]).count
+      summary.medium_severity = scans.where(severity: "medium").count
+      summary.low_severity = scans.where(severity: "low").count
+      summary.average_score = nil # Not applicable for code smells
+      summary.scanned_at = Time.current
+      summary.save!
+    end
+  end
+
+  def create_flog_summary
+    scans = app.quality_scans.where(scan_type: "flog")
+
+    app.metric_summaries.find_or_initialize_by(scan_type: "flog").tap do |summary|
       summary.total_issues = scans.count
       summary.high_severity = scans.where(severity: ["critical", "high"]).count
       summary.medium_severity = scans.where(severity: "medium").count
       summary.low_severity = scans.where(severity: "low").count
       summary.average_score = scans.average(:metric_value).to_f.round(2)
+      summary.scanned_at = Time.current
+      summary.save!
+    end
+  end
+
+  def create_flay_summary
+    scans = app.quality_scans.where(scan_type: "flay")
+
+    app.metric_summaries.find_or_initialize_by(scan_type: "flay").tap do |summary|
+      summary.total_issues = scans.count
+      summary.high_severity = scans.where(severity: ["critical", "high"]).count
+      summary.medium_severity = scans.where(severity: "medium").count
+      summary.low_severity = scans.where(severity: "low").count
+      summary.average_score = nil # Not applicable for duplications
       summary.scanned_at = Time.current
       summary.save!
     end
