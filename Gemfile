@@ -37,6 +37,13 @@ gem "thruster", require: false
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
 # gem "image_processing", "~> 1.2"
 
+# Code quality gems (needed in production to scan other apps)
+gem "brakeman", require: false
+gem "rubocop-rails-omakase", require: false
+gem "reek", require: false          # Code smell detection
+gem "flog", require: false          # ABC complexity metric
+gem "flay", require: false          # Structural similarity detection
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri mingw mswin x64_mingw ]
@@ -46,17 +53,8 @@ group :development, :test do
   gem "factory_bot_rails", "~> 6.4"
   gem "faker", "~> 3.5"
 
-  # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
-  gem "brakeman", require: false
-
-  # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
-  gem "rubocop-rails-omakase", require: false
-
-  # Code quality gems
-  gem "reek", require: false          # Code smell detection
-  gem "flog", require: false          # ABC complexity metric
-  gem "flay", require: false          # Structural similarity detection
-  gem "simplecov", require: false     # Test coverage
+  # Test coverage (only needed locally)
+  gem "simplecov", require: false
   gem "rubycritic", require: false    # Code quality reporting
 end
 
