@@ -27,9 +27,10 @@ Scans all apps in the ecosystem (excluding triplechain per ecosystem rules).
 **Features**:
 - Auto-detects environment (production vs development paths)
 - Skips non-existent app directories
-- Runs all scanners: SecurityScanner, StaticAnalysisScanner, RubocopScanner, DriftScanner
+- Runs all scanners: SecurityScanner, StaticAnalysisScanner, RubocopScanner, DriftScanner, TestCoverageScanner
 - Updates app status based on scan results
 - Comprehensive error handling and progress reporting
+- Test coverage scan with 2-minute timeout per app
 
 **Usage**:
 ```bash
@@ -126,10 +127,11 @@ ssh zac@24.199.71.69 'tail -100 ~/code_quality/shared/log/quality_scans.log'
    - Reason: Same as Brakeman
    - Solution needed: Same as Brakeman
 
-5. **TestCoverageScanner** - NOT ENABLED
-   - Commented out in AppScannerJob (line 14)
-   - Reason: "can be slow"
-   - Status: Available but disabled for performance
+5. **TestCoverageScanner** - NOW ENABLED
+   - Integrated into quality:scan_all and quality:scan_app rake tasks
+   - Performance handled with 2-minute timeout per app
+   - Graceful error handling (failures don't break entire scan workflow)
+   - Status: Active and running during daily scans
 
 ## Current Results (First Scan)
 
@@ -160,10 +162,10 @@ ssh zac@24.199.71.69 'tail -100 ~/code_quality/shared/log/quality_scans.log'
 
 ### Medium Priority
 
-3. **Enable Test Coverage Scanner**
-   - Current: Disabled for performance
-   - Solution: Run during off-peak hours or async
-   - Benefit: Track test coverage across all apps
+3. ~~**Enable Test Coverage Scanner**~~ - COMPLETED (2025-10-29)
+   - ✅ Now enabled with 2-minute timeout per app
+   - ✅ Graceful error handling prevents workflow disruption
+   - ✅ Track test coverage across all apps
 
 4. **Add Notification System**
    - Current: Silent scans, check dashboard manually

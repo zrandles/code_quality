@@ -74,6 +74,17 @@ namespace :quality do
         puts "  🎯 Running drift detection..."
         DriftScanner.new(app).scan
 
+        puts "  🧪 Running test coverage scan..."
+        begin
+          Timeout.timeout(120) do # 2 minute timeout per app
+            TestCoverageScanner.new(app).scan
+          end
+        rescue Timeout::Error
+          puts "     ⚠️  Test coverage scan timed out (skipping)"
+        rescue => coverage_error
+          puts "     ⚠️  Test coverage scan failed: #{coverage_error.message}"
+        end
+
         # Update app status based on scan results
         critical_count = app.quality_scans.where(severity: ["critical", "high"]).count
         medium_count = app.quality_scans.where(severity: "medium").count
@@ -164,6 +175,17 @@ namespace :quality do
 
     puts "  🎯 Running drift detection..."
     DriftScanner.new(app).scan
+
+    puts "  🧪 Running test coverage scan..."
+    begin
+      Timeout.timeout(120) do # 2 minute timeout
+        TestCoverageScanner.new(app).scan
+      end
+    rescue Timeout::Error
+      puts "     ⚠️  Test coverage scan timed out (skipping)"
+    rescue => coverage_error
+      puts "     ⚠️  Test coverage scan failed: #{coverage_error.message}"
+    end
 
     # Update app status
     critical_count = app.quality_scans.where(severity: ["critical", "high"]).count
