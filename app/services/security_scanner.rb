@@ -23,7 +23,7 @@ class SecurityScanner
     output_file = Rails.root.join("tmp", "brakeman_#{app.name}.json")
 
     # Run brakeman with JSON output
-    cmd = "cd #{app.path} && brakeman -q -f json -o #{output_file} 2>&1"
+    cmd = "cd #{app.path} && bundle exec brakeman -q -f json -o #{output_file} 2>&1"
     system(cmd)
 
     return unless File.exist?(output_file)

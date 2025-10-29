@@ -45,7 +45,7 @@ class RubocopScanner
 
     # Only run specific cops
     cops_arg = HIGH_VALUE_COPS.map { |cop| "--only #{cop}" }.join(" ")
-    cmd = "cd #{app.path} && rubocop #{cops_arg} --format json --out #{output_file} app 2>&1"
+    cmd = "cd #{app.path} && bundle exec rubocop #{cops_arg} --format json --out #{output_file} app 2>&1"
     system(cmd)
 
     return unless File.exist?(output_file)

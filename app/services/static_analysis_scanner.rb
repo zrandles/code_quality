@@ -24,7 +24,7 @@ class StaticAnalysisScanner
   def run_reek
     output_file = Rails.root.join("tmp", "reek_#{app.name}.json")
 
-    cmd = "cd #{app.path} && reek app --format json > #{output_file} 2>&1"
+    cmd = "cd #{app.path} && bundle exec reek app --format json > #{output_file} 2>&1"
     system(cmd)
 
     return unless File.exist?(output_file)
@@ -57,7 +57,7 @@ class StaticAnalysisScanner
   end
 
   def run_flog
-    output = `cd #{app.path} && flog app 2>&1`
+    output = `cd #{app.path} && bundle exec flog app 2>&1`
     parse_flog_results(output)
   rescue => e
     Rails.logger.error("Flog scan failed for #{app.name}: #{e.message}")
@@ -90,7 +90,7 @@ class StaticAnalysisScanner
   end
 
   def run_flay
-    output = `cd #{app.path} && flay app 2>&1`
+    output = `cd #{app.path} && bundle exec flay app 2>&1`
     parse_flay_results(output)
   rescue => e
     Rails.logger.error("Flay scan failed for #{app.name}: #{e.message}")
