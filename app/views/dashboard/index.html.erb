@@ -328,23 +328,56 @@
                   <% end %>
                 </td>
 
-                <!-- Reek/Flog/Flay (all from static_analysis) -->
-                <% ['reek', 'flog', 'flay'].each do |_label| %>
-                  <td>
-                    <% if summaries['static_analysis'] %>
-                      <% summary = summaries['static_analysis'] %>
-                      <% if summary.high_severity > 0 %>
-                        <span class="issue-critical"><%= summary.high_severity %> critical</span>
-                      <% elsif summary.medium_severity > 0 %>
-                        <span class="issue-warning"><%= summary.medium_severity %> warnings</span>
-                      <% else %>
-                        <span class="issue-ok">✓</span>
-                      <% end %>
+                <!-- Reek -->
+                <td>
+                  <% if summaries['reek'] %>
+                    <% summary = summaries['reek'] %>
+                    <% score = summary.average_score.to_f.round(0) %>
+                    <% if score < 10 %>
+                      <span class="issue-ok"><%= score %> ✓</span>
+                    <% elsif score <= 30 %>
+                      <span class="issue-warning"><%= score %></span>
                     <% else %>
-                      <span style="color: #ccc;">-</span>
+                      <span class="issue-critical"><%= score %> !</span>
                     <% end %>
-                  </td>
-                <% end %>
+                  <% else %>
+                    <span style="color: #ccc;">-</span>
+                  <% end %>
+                </td>
+
+                <!-- Flog -->
+                <td>
+                  <% if summaries['flog'] %>
+                    <% summary = summaries['flog'] %>
+                    <% score = summary.average_score.to_f.round(1) %>
+                    <% if score < 15 %>
+                      <span class="issue-ok"><%= score %> ✓</span>
+                    <% elsif score <= 25 %>
+                      <span class="issue-warning"><%= score %></span>
+                    <% else %>
+                      <span class="issue-critical"><%= score %> !</span>
+                    <% end %>
+                  <% else %>
+                    <span style="color: #ccc;">-</span>
+                  <% end %>
+                </td>
+
+                <!-- Flay -->
+                <td>
+                  <% if summaries['flay'] %>
+                    <% summary = summaries['flay'] %>
+                    <% score = summary.average_score.to_f.round(0) %>
+                    <% if score == 0 %>
+                      <span class="issue-ok"><%= score %> ✓</span>
+                    <% elsif score <= 3 %>
+                      <span class="issue-warning"><%= score %></span>
+                    <% else %>
+                      <span class="issue-critical"><%= score %> !</span>
+                    <% end %>
+                  <% else %>
+                    <span style="color: #ccc;">-</span>
+                  <% end %>
+                </td>
 
                 <!-- Drift -->
                 <td>
