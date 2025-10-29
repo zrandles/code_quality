@@ -5,7 +5,10 @@ namespace :quality do
 
     puts "Discovering Rails apps in: #{base_path}"
 
-    return unless Dir.exist?(base_path)
+    unless Dir.exist?(base_path)
+      puts "Directory not found: #{base_path}"
+      next
+    end
 
     discovered_count = 0
 
