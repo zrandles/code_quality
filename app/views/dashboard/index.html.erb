@@ -332,7 +332,7 @@
                 <td>
                   <% if summaries['reek'] %>
                     <% summary = summaries['reek'] %>
-                    <% score = summary.average_score.to_f.round(0) %>
+                    <% score = summary.total_issues.to_i %>
                     <% if score < 10 %>
                       <span class="issue-ok"><%= score %> ✓</span>
                     <% elsif score <= 30 %>
@@ -366,7 +366,7 @@
                 <td>
                   <% if summaries['flay'] %>
                     <% summary = summaries['flay'] %>
-                    <% score = summary.average_score.to_f.round(0) %>
+                    <% score = summary.total_issues.to_i %>
                     <% if score == 0 %>
                       <span class="issue-ok"><%= score %> ✓</span>
                     <% elsif score <= 3 %>
