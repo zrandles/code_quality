@@ -127,11 +127,24 @@ ssh zac@24.199.71.69 'tail -100 ~/code_quality/shared/log/quality_scans.log'
    - Reason: Same as Brakeman
    - Solution needed: Same as Brakeman
 
-5. **TestCoverageScanner** - NOW ENABLED
-   - Integrated into quality:scan_all and quality:scan_app rake tasks
-   - Performance handled with 2-minute timeout per app
-   - Graceful error handling (failures don't break entire scan workflow)
-   - Status: Active and running during daily scans
+5. **TestCoverageScanner** - FULLY WORKING
+   - **Status**: Active and running during daily scans
+   - **What it does**: Tracks test coverage across all apps using SimpleCov
+   - **How it works**:
+     1. Checks for existing SimpleCov results (`coverage/.resultset.json`)
+     2. If missing, runs tests to generate coverage (60-second timeout)
+     3. Parses coverage data and flags files with <80% coverage
+     4. Stores overall coverage in MetricSummary.average_score
+   - **Data stored**:
+     - QualityScans: Individual files with low coverage (<80%)
+     - MetricSummary: Overall coverage percentage for the app
+   - **Severity levels**:
+     - High: Coverage < 50%
+     - Medium: Coverage 50-79%
+     - Info: Overall coverage summary
+   - **Dashboard display**: Coverage column shows overall percentage
+   - **Performance**: 60-second timeout per app prevents hanging
+   - **See**: `docs/TEST_COVERAGE_GUIDE.md` for comprehensive setup and usage guide
 
 ## Current Results (First Scan)
 
@@ -163,9 +176,12 @@ ssh zac@24.199.71.69 'tail -100 ~/code_quality/shared/log/quality_scans.log'
 ### Medium Priority
 
 3. ~~**Enable Test Coverage Scanner**~~ - COMPLETED (2025-10-29)
-   - ✅ Now enabled with 2-minute timeout per app
+   - ✅ Now enabled with 60-second timeout per app
    - ✅ Graceful error handling prevents workflow disruption
    - ✅ Track test coverage across all apps
+   - ✅ Comprehensive documentation in TEST_COVERAGE_GUIDE.md
+   - ✅ Tracks SimpleCov results and stores in dashboard
+   - ✅ 11/19 apps have SimpleCov configured (golden_deployment template ready)
 
 4. **Add Notification System**
    - Current: Silent scans, check dashboard manually
@@ -236,7 +252,7 @@ Check scanner implementation in `app/services/`:
 - `static_analysis_scanner.rb` - Reek, Flog, Flay
 - `rubocop_scanner.rb` - RuboCop (high-value cops only)
 - `drift_scanner.rb` - Golden deployment comparison
-- `test_coverage_scanner.rb` - SimpleCov (disabled)
+- `test_coverage_scanner.rb` - SimpleCov (see TEST_COVERAGE_GUIDE.md)
 
 ## Database Safety Note
 
