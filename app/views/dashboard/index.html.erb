@@ -296,10 +296,43 @@
                     <span class="never-scanned">Never</span>
                   <% end %>
                 </td>
-                <% ['security', 'rubocop', 'reek', 'flog', 'flay', 'drift', 'coverage'].each do |scan_type| %>
+                <!-- Security -->
+                <td>
+                  <% if summaries['security'] %>
+                    <% summary = summaries['security'] %>
+                    <% if summary.high_severity > 0 %>
+                      <span class="issue-critical"><%= summary.high_severity %> critical</span>
+                    <% elsif summary.medium_severity > 0 %>
+                      <span class="issue-warning"><%= summary.medium_severity %> warnings</span>
+                    <% else %>
+                      <span class="issue-ok">✓</span>
+                    <% end %>
+                  <% else %>
+                    <span style="color: #ccc;">-</span>
+                  <% end %>
+                </td>
+
+                <!-- RuboCop -->
+                <td>
+                  <% if summaries['rubocop'] %>
+                    <% summary = summaries['rubocop'] %>
+                    <% if summary.high_severity > 0 %>
+                      <span class="issue-critical"><%= summary.high_severity %> critical</span>
+                    <% elsif summary.medium_severity > 0 %>
+                      <span class="issue-warning"><%= summary.medium_severity %> warnings</span>
+                    <% else %>
+                      <span class="issue-ok">✓</span>
+                    <% end %>
+                  <% else %>
+                    <span style="color: #ccc;">-</span>
+                  <% end %>
+                </td>
+
+                <!-- Reek/Flog/Flay (all from static_analysis) -->
+                <% ['reek', 'flog', 'flay'].each do |_label| %>
                   <td>
-                    <% if summaries[scan_type] %>
-                      <% summary = summaries[scan_type] %>
+                    <% if summaries['static_analysis'] %>
+                      <% summary = summaries['static_analysis'] %>
                       <% if summary.high_severity > 0 %>
                         <span class="issue-critical"><%= summary.high_severity %> critical</span>
                       <% elsif summary.medium_severity > 0 %>
@@ -312,6 +345,39 @@
                     <% end %>
                   </td>
                 <% end %>
+
+                <!-- Drift -->
+                <td>
+                  <% if summaries['drift'] %>
+                    <% summary = summaries['drift'] %>
+                    <% if summary.high_severity > 0 %>
+                      <span class="issue-critical"><%= summary.high_severity %> critical</span>
+                    <% elsif summary.medium_severity > 0 %>
+                      <span class="issue-warning"><%= summary.medium_severity %> warnings</span>
+                    <% else %>
+                      <span class="issue-ok">✓</span>
+                    <% end %>
+                  <% else %>
+                    <span style="color: #ccc;">-</span>
+                  <% end %>
+                </td>
+
+                <!-- Coverage (show percentage) -->
+                <td>
+                  <% if summaries['test_coverage'] %>
+                    <% summary = summaries['test_coverage'] %>
+                    <% score = summary.average_score.to_f.round(1) %>
+                    <% if score >= 80 %>
+                      <span class="issue-ok"><%= score %>%</span>
+                    <% elsif score >= 60 %>
+                      <span class="issue-warning"><%= score %>%</span>
+                    <% else %>
+                      <span class="issue-critical"><%= score %>%</span>
+                    <% end %>
+                  <% else %>
+                    <span style="color: #ccc;">-</span>
+                  <% end %>
+                </td>
                 <td>
                   <%= button_to "Scan", scan_app_path(app), method: :post, style: "background: #007bff; color: white; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 13px;" %>
                 </td>
