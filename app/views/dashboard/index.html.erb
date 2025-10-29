@@ -174,6 +174,19 @@
       color: #6c757d;
     }
 
+    .status-paused {
+      background: #d1d5db;
+      color: #4b5563;
+    }
+
+    tr.paused-row {
+      opacity: 0.6;
+    }
+
+    tr.paused-row:hover {
+      opacity: 0.8;
+    }
+
     .scan-summary {
       font-size: 13px;
       line-height: 1.6;
@@ -276,7 +289,7 @@
           <% if @apps.any? %>
             <% @apps.each do |app| %>
               <% summaries = app.latest_summaries %>
-              <tr>
+              <tr class="<%= 'paused-row' if app.status == 'paused' %>">
                 <td>
                   <%= link_to app.name, app_path(app), class: "app-name" %>
                 </td>

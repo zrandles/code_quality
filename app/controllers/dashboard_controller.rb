@@ -1,6 +1,10 @@
 class DashboardController < ApplicationController
   def index
-    @apps = ScannedApp.all.order(:name)
+    # Sort apps: active apps first (alphabetically), then paused apps (alphabetically)
+    @apps = ScannedApp.all.sort_by do |app|
+      [app.status == "paused" ? 1 : 0, app.name.downcase]
+    end
+
     @total_apps = @apps.count
     @critical_apps = @apps.select { |app| app.status == "critical" }.count
     @warning_apps = @apps.select { |app| app.status == "warning" }.count
