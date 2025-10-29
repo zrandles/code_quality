@@ -1,7 +1,7 @@
 namespace :quality do
   desc "Discover Rails apps in the ecosystem"
   task discover_apps: :environment do
-    base_path = ENV['APPS_PATH'] || '/home/zac/zac_ecosystem/apps'
+    base_path = ENV['APPS_PATH'] || '/home/zac'
 
     puts "Discovering Rails apps in: #{base_path}"
 
@@ -15,18 +15,27 @@ namespace :quality do
     Dir.entries(base_path).sort.each do |entry|
       next if entry.start_with?('.')
 
-      app_path = File.join(base_path, entry)
-      next unless File.directory?(app_path)
+      app_dir = File.join(base_path, entry)
+      next unless File.directory?(app_dir)
 
-      # Check if it's a Rails app
-      if File.exist?(File.join(app_path, 'config', 'application.rb'))
+      # Check for Capistrano-deployed app (has /current/config/application.rb)
+      current_path = File.join(app_dir, 'current')
+      app_path = if File.exist?(File.join(current_path, 'config', 'application.rb'))
+        current_path
+      elsif File.exist?(File.join(app_dir, 'config', 'application.rb'))
+        app_dir
+      else
+        nil
+      end
+
+      if app_path
         app = ScannedApp.find_or_initialize_by(name: entry)
         app.path = app_path
         app.status ||= 'active'
 
         if app.save
           discovered_count += 1
-          puts "✓ #{entry}"
+          puts "✓ #{entry} (#{File.basename(app_path) == 'current' ? 'deployed' : 'local'})"
         else
           puts "✗ #{entry}: #{app.errors.full_messages.join(', ')}"
         end
@@ -35,5 +44,29 @@ namespace :quality do
 
     puts "\nDiscovered #{discovered_count} Rails apps"
     puts "Total apps in database: #{ScannedApp.count}"
+  end
+
+  desc "Run all quality scans on all active apps"
+  task scan_all: :environment do
+    ScannedApp.where.not(status: 'paused').find_each do |app|
+      puts "\n" + "="*50
+      puts "Scanning: #{app.name}"
+      puts "="*50
+
+      begin
+        QualityRunner.new(app).scan_all
+        puts "✓ #{app.name} scanned successfully"
+      rescue => e
+        puts "✗ #{app.name} failed: #{e.message}"
+      end
+    end
+
+    # Sync coverage scores after all scans
+    puts "\n" + "="*50
+    puts "Syncing coverage scores..."
+    puts "="*50
+    Rake::Task['quality:sync_coverage_scores'].invoke
+
+    puts "\n✅ All scans complete!"
   end
 end

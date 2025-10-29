@@ -1,0 +1,23 @@
+#!/bin/bash
+
+# Setup cron job for autonomous quality scanning
+# This script adds a daily cron job to scan all apps at 2am
+
+CRON_COMMAND="0 2 * * * cd /home/zac/code_quality/current && RBENV_ROOT=\$HOME/.rbenv RBENV_VERSION=3.3.4 \$HOME/.rbenv/bin/rbenv exec bundle exec rake quality:scan_all RAILS_ENV=production >> /home/zac/code_quality/shared/log/quality_scan.log 2>&1"
+
+# Check if cron job already exists
+if crontab -l 2>/dev/null | grep -q "quality:scan_all"; then
+    echo "✓ Cron job already exists"
+    echo "Current cron jobs:"
+    crontab -l | grep quality
+else
+    # Add cron job
+    (crontab -l 2>/dev/null; echo "$CRON_COMMAND") | crontab -
+    echo "✓ Cron job added successfully"
+    echo "Quality scans will run daily at 2:00 AM"
+fi
+
+echo ""
+echo "To view all cron jobs: crontab -l"
+echo "To remove this cron job: crontab -e (then delete the line)"
+echo "To view scan logs: tail -f /home/zac/code_quality/shared/log/quality_scan.log"
