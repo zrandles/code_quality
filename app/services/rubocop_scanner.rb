@@ -43,9 +43,9 @@ class RubocopScanner
   def run_rubocop
     output_file = Rails.root.join("tmp", "rubocop_#{app.name}.json")
 
-    # Only run specific cops
+    # Only run specific cops from code_quality's bundle
     cops_arg = HIGH_VALUE_COPS.map { |cop| "--only #{cop}" }.join(" ")
-    cmd = "cd #{app.path} && bundle exec rubocop #{cops_arg} --format json --out #{output_file} app 2>&1"
+    cmd = "bundle exec rubocop #{cops_arg} --format json --out #{output_file} #{app.path}/app 2>&1"
     system(cmd)
 
     return unless File.exist?(output_file)
