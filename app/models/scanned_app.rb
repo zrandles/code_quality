@@ -21,4 +21,18 @@ class ScannedApp < ApplicationRecord
   def latest_summaries
     metric_summaries.order(scanned_at: :desc).group_by(&:scan_type).transform_values(&:first)
   end
+
+  # Check if an app directory has been decommissioned
+  # Looks for DECOMMISSIONED marker file in the app directory
+  def self.decommissioned?(app_path)
+    return false unless app_path
+
+    # Check both local path and potential server path (for Capistrano deployments)
+    marker_paths = [
+      File.join(app_path, 'DECOMMISSIONED'),
+      File.join(File.dirname(app_path), 'DECOMMISSIONED') # For /current/ subdirs
+    ]
+
+    marker_paths.any? { |path| File.exist?(path) }
+  end
 end

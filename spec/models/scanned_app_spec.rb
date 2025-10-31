@@ -93,4 +93,32 @@ RSpec.describe ScannedApp, type: :model do
       expect(latest.keys).to contain_exactly("security", "static_analysis", "rubocop")
     end
   end
+
+  describe '.decommissioned?' do
+    it 'returns false when path is nil' do
+      expect(ScannedApp.decommissioned?(nil)).to be false
+    end
+
+    it 'returns false when DECOMMISSIONED marker does not exist' do
+      Dir.mktmpdir do |tmpdir|
+        expect(ScannedApp.decommissioned?(tmpdir)).to be false
+      end
+    end
+
+    it 'returns true when DECOMMISSIONED marker exists in path' do
+      Dir.mktmpdir do |tmpdir|
+        FileUtils.touch(File.join(tmpdir, 'DECOMMISSIONED'))
+        expect(ScannedApp.decommissioned?(tmpdir)).to be true
+      end
+    end
+
+    it 'returns true when DECOMMISSIONED marker exists in parent directory (for Capistrano current/ subdirs)' do
+      Dir.mktmpdir do |tmpdir|
+        current_dir = File.join(tmpdir, 'current')
+        FileUtils.mkdir_p(current_dir)
+        FileUtils.touch(File.join(tmpdir, 'DECOMMISSIONED'))
+        expect(ScannedApp.decommissioned?(current_dir)).to be true
+      end
+    end
+  end
 end

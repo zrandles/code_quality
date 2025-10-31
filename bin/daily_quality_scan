@@ -18,11 +18,19 @@ log "Starting daily quality scan..."
 # Discover all apps
 apps_dir = File.expand_path("~/zac_ecosystem/apps")
 discovered = 0
+skipped = 0
 
 Dir.glob("#{apps_dir}/*").each do |app_path|
   next unless File.directory?(app_path)
   app_name = File.basename(app_path)
   next unless File.exist?(File.join(app_path, "config", "application.rb"))
+
+  # Skip decommissioned apps
+  if ScannedApp.decommissioned?(app_path)
+    log "  ⊘ Skipping decommissioned app: #{app_name}"
+    skipped += 1
+    next
+  end
 
   ScannedApp.find_or_create_by(name: app_name) do |a|
     a.path = app_path
@@ -31,7 +39,7 @@ Dir.glob("#{apps_dir}/*").each do |app_path|
   discovered += 1
 end
 
-log "Discovered #{discovered} apps"
+log "Discovered #{discovered} apps (skipped #{skipped} decommissioned)"
 
 # Scan all apps
 ScannedApp.all.each do |app|

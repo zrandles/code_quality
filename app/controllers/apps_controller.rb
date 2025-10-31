@@ -41,6 +41,9 @@ class AppsController < ApplicationController
       # Skip non-Rails apps
       next unless File.exist?(File.join(app_path, "config", "application.rb"))
 
+      # Skip decommissioned apps
+      next if ScannedApp.decommissioned?(app_path)
+
       ScannedApp.find_or_create_by(name: app_name) do |app|
         app.path = app_path
         app.status = "pending"

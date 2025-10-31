@@ -1,4 +1,32 @@
 namespace :quality do
+  desc "Remove decommissioned apps and apps that no longer exist"
+  task cleanup_decommissioned: :environment do
+    puts "Cleaning up decommissioned apps and apps that no longer exist..."
+    decommissioned_count = 0
+    missing_count = 0
+
+    ScannedApp.find_each do |app|
+      # Check if path exists
+      unless File.exist?(app.path)
+        puts "  Removing (path not found): #{app.name} (#{app.path})"
+        app.destroy
+        missing_count += 1
+        next
+      end
+
+      # Check if decommissioned
+      if ScannedApp.decommissioned?(app.path)
+        puts "  Removing (decommissioned): #{app.name} (#{app.path})"
+        app.destroy
+        decommissioned_count += 1
+      end
+    end
+
+    puts "\nRemoved #{decommissioned_count} decommissioned apps"
+    puts "Removed #{missing_count} apps with missing paths"
+    puts "Remaining apps: #{ScannedApp.count}"
+  end
+
   desc "Discover Rails apps in the ecosystem"
   task discover_apps: :environment do
     base_path = ENV['APPS_PATH'] || '/home/zac'
@@ -29,6 +57,12 @@ namespace :quality do
       end
 
       if app_path
+        # Skip decommissioned apps
+        if ScannedApp.decommissioned?(app_path)
+          puts "⊘ #{entry} (decommissioned - skipping)"
+          next
+        end
+
         app = ScannedApp.find_or_initialize_by(name: entry)
         app.path = app_path
         app.status ||= 'active'
