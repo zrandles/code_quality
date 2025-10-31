@@ -52,7 +52,14 @@ RSpec.describe RubocopScanner do
       end
 
       it 'runs rubocop with only high-value cops' do
-        expect(scanner).to receive(:system).with(/--only/)
+        expect(scanner).to receive(:system) do |*args|
+          # Check that the command includes multiple --only flags
+          args_str = args.join(" ")
+          expect(args_str).to include("--only")
+          expect(args_str).to include("Lint/Debugger")
+          expect(args_str).to include("Security/Eval")
+          true
+        end
         scanner.scan
       end
 
