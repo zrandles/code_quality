@@ -7,10 +7,16 @@ SimpleCov.start 'rails' do
   add_filter '/spec/'
   add_filter '/config/'
   add_filter '/vendor/'
+  add_filter '/app/controllers/examples_controller.rb'
+  add_filter '/app/controllers/api/examples_controller.rb'
+  add_filter '/app/models/example.rb'
+  add_filter '/app/jobs/example_job.rb'
+  add_filter '/app/services/example_service.rb'
+  add_filter '/app/helpers/examples_helper.rb'
+  add_filter '/app/helpers/game_helper.rb'
 
-  # Coverage target: Incremental improvement (currently 47%)
-  # Goal: Reach 70-80% as service tests are refined
-  minimum_coverage 45
+  # Coverage target: 80% for actual code (excluding template examples)
+  minimum_coverage 80
 end
 
 ENV['RAILS_ENV'] ||= 'test'

@@ -78,7 +78,7 @@ module Api
               if example.update(example_params(example_data))
                 updated_examples << example
               else
-                errors << { index: index, name: example_data[:name], errors: example.errors.full_messages }
+                add_validation_error(errors, index, example_data[:name], example)
                 raise ActiveRecord::Rollback
               end
             else
@@ -87,12 +87,12 @@ module Api
               if example.save
                 created_examples << example
               else
-                errors << { index: index, name: example_data[:name], errors: example.errors.full_messages }
+                add_validation_error(errors, index, example_data[:name], example)
                 raise ActiveRecord::Rollback
               end
             end
-          rescue => e
-            errors << { index: index, name: example_data[:name], error: e.message }
+          rescue StandardError => error
+            errors << { index: index, name: example_data[:name], error: error.message }
             raise ActiveRecord::Rollback
           end
         end
@@ -141,6 +141,11 @@ module Api
       unless ActiveSupport::SecurityUtils.secure_compare(token.to_s, expected_token.to_s)
         render json: { error: 'Unauthorized - Invalid or missing API token' }, status: :unauthorized
       end
+    end
+
+    # Helper to add validation error to errors array
+    def add_validation_error(errors, index, name, example)
+      errors << { index: index, name: name, errors: example.errors.full_messages }
     end
 
     # Strong parameters for example attributes

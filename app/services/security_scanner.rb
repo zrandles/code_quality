@@ -1,12 +1,7 @@
 require "shellwords"
 
 class SecurityScanner
-  attr_reader :app, :results
-
-  def initialize(app)
-    @app = app
-    @results = []
-  end
+  include ScannerBase
 
   def scan
     return unless app_exists?
@@ -17,8 +12,8 @@ class SecurityScanner
 
   private
 
-  def app_exists?
-    File.directory?(app.path)
+  def scan_type
+    "security"
   end
 
   def run_brakeman
@@ -40,8 +35,8 @@ class SecurityScanner
     parse_brakeman_results(data)
 
     File.delete(output_file) if File.exist?(output_file)
-  rescue => e
-    Rails.logger.error("Brakeman scan failed for #{app.name}: #{e.message}")
+  rescue StandardError => error
+    Rails.logger.error("Brakeman scan failed for #{app.name}: #{error.message}")
   end
 
   def parse_brakeman_results(data)
@@ -68,29 +63,5 @@ class SecurityScanner
     end
   end
 
-  def save_results
-    # Clear old security scans for this app
-    app.quality_scans.where(scan_type: "security").delete_all
-
-    # Create new scans
-    @results.each do |result|
-      app.quality_scans.create!(result)
-    end
-
-    # Create summary
-    create_summary
-  end
-
-  def create_summary
-    scans = app.quality_scans.where(scan_type: "security")
-
-    app.metric_summaries.find_or_initialize_by(scan_type: "security").tap do |summary|
-      summary.total_issues = scans.count
-      summary.high_severity = scans.where(severity: ["critical", "high"]).count
-      summary.medium_severity = scans.where(severity: "medium").count
-      summary.low_severity = scans.where(severity: "low").count
-      summary.scanned_at = Time.current
-      summary.save!
-    end
-  end
+  # save_results and create_summary are now provided by ScannerBase
 end

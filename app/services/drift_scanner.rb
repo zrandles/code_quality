@@ -1,5 +1,5 @@
 class DriftScanner
-  attr_reader :app, :results
+  include ScannerBase
 
   CRITICAL_FILES = [
     "config/deploy.rb",
@@ -10,11 +10,6 @@ class DriftScanner
   ].freeze
 
   GOLDEN_PATH = File.expand_path("~/zac_ecosystem/apps/golden_deployment")
-
-  def initialize(app)
-    @app = app
-    @results = []
-  end
 
   def scan
     return unless app_exists?
@@ -29,8 +24,8 @@ class DriftScanner
 
   private
 
-  def app_exists?
-    File.directory?(app.path)
+  def scan_type
+    "drift"
   end
 
   def check_deployment_config
@@ -60,8 +55,8 @@ class DriftScanner
         scanned_at: Time.current
       }
     end
-  rescue => e
-    Rails.logger.error("Drift check failed for #{app.name}: #{e.message}")
+  rescue StandardError => error
+    Rails.logger.error("Drift check failed for #{app.name}: #{error.message}")
   end
 
   def check_gem_versions
@@ -86,8 +81,8 @@ class DriftScanner
         }
       end
     end
-  rescue => e
-    Rails.logger.error("Gem version check failed for #{app.name}: #{e.message}")
+  rescue StandardError => error
+    Rails.logger.error("Gem version check failed for #{app.name}: #{error.message}")
   end
 
   def parse_gemfile_lock(file_path)
@@ -118,8 +113,8 @@ class DriftScanner
         scanned_at: Time.current
       }
     end
-  rescue => e
-    Rails.logger.error("Tailwind check failed for #{app.name}: #{e.message}")
+  rescue StandardError => error
+    Rails.logger.error("Tailwind check failed for #{app.name}: #{error.message}")
   end
 
   def check_path_based_routing
@@ -139,33 +134,9 @@ class DriftScanner
         scanned_at: Time.current
       }
     end
-  rescue => e
-    Rails.logger.error("Path-based routing check failed for #{app.name}: #{e.message}")
+  rescue StandardError => error
+    Rails.logger.error("Path-based routing check failed for #{app.name}: #{error.message}")
   end
 
-  def save_results
-    # Clear old drift scans
-    app.quality_scans.where(scan_type: "drift").delete_all
-
-    # Create new scans
-    @results.each do |result|
-      app.quality_scans.create!(result)
-    end
-
-    # Create summary
-    create_summary
-  end
-
-  def create_summary
-    scans = app.quality_scans.where(scan_type: "drift")
-
-    app.metric_summaries.find_or_initialize_by(scan_type: "drift").tap do |summary|
-      summary.total_issues = scans.count
-      summary.high_severity = scans.where(severity: ["critical", "high"]).count
-      summary.medium_severity = scans.where(severity: "medium").count
-      summary.low_severity = scans.where(severity: "low").count
-      summary.scanned_at = Time.current
-      summary.save!
-    end
-  end
+  # save_results and create_summary are now provided by ScannerBase
 end

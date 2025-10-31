@@ -1,11 +1,10 @@
 require "shellwords"
 
 class StaticAnalysisScanner
-  attr_reader :app, :results
+  include ScannerBase
 
   def initialize(app)
-    @app = app
-    @results = []
+    super(app)
     @reek_results = []
     @flog_results = []
     @flay_results = []
@@ -17,14 +16,10 @@ class StaticAnalysisScanner
     run_reek
     run_flog
     run_flay
-    save_results
+    save_results(scan_types: ["static_analysis", "reek", "flog", "flay"])
   end
 
   private
-
-  def app_exists?
-    File.directory?(app.path)
-  end
 
   def run_reek
     # Sanitize app name for safe filename usage
@@ -44,8 +39,8 @@ class StaticAnalysisScanner
     parse_reek_results(data)
 
     File.delete(output_file)
-  rescue => e
-    Rails.logger.error("Reek scan failed for #{app.name}: #{e.message}")
+  rescue StandardError => error
+    Rails.logger.error("Reek scan failed for #{app.name}: #{error.message}")
   end
 
   def parse_reek_results(data)
@@ -74,8 +69,8 @@ class StaticAnalysisScanner
     app_path = Shellwords.escape("#{app.path}/app")
     output = `bundle exec flog #{app_path} 2>&1`
     parse_flog_results(output)
-  rescue => e
-    Rails.logger.error("Flog scan failed for #{app.name}: #{e.message}")
+  rescue StandardError => error
+    Rails.logger.error("Flog scan failed for #{app.name}: #{error.message}")
   end
 
   def parse_flog_results(output)
@@ -109,8 +104,8 @@ class StaticAnalysisScanner
     app_path = Shellwords.escape("#{app.path}/app")
     output = `bundle exec flay #{app_path} 2>&1`
     parse_flay_results(output)
-  rescue => e
-    Rails.logger.error("Flay scan failed for #{app.name}: #{e.message}")
+  rescue StandardError => error
+    Rails.logger.error("Flay scan failed for #{app.name}: #{error.message}")
   end
 
   def parse_flay_results(output)
@@ -137,42 +132,15 @@ class StaticAnalysisScanner
     end
   end
 
-  def save_results
-    # Clear old static analysis scans (including new scan types)
-    app.quality_scans.where(scan_type: ["static_analysis", "reek", "flog", "flay"]).delete_all
-
-    # Create new scans
-    @results.each do |result|
-      app.quality_scans.create!(result)
-    end
-
-    # Create summaries for each tool
-    create_summaries
-  end
-
-  def create_summaries
-    # Create Reek summary (code smells)
+  # Override create_summary to handle multiple scan types
+  def create_summary
     create_reek_summary
-
-    # Create Flog summary (complexity)
     create_flog_summary
-
-    # Create Flay summary (duplication)
     create_flay_summary
   end
 
   def create_reek_summary
-    scans = app.quality_scans.where(scan_type: "reek")
-
-    app.metric_summaries.find_or_initialize_by(scan_type: "reek").tap do |summary|
-      summary.total_issues = scans.count
-      summary.high_severity = scans.where(severity: ["critical", "high"]).count
-      summary.medium_severity = scans.where(severity: "medium").count
-      summary.low_severity = scans.where(severity: "low").count
-      summary.average_score = nil # Not applicable for code smells
-      summary.scanned_at = Time.current
-      summary.save!
-    end
+    create_summary_for_type("reek")
   end
 
   def create_flog_summary
@@ -190,16 +158,6 @@ class StaticAnalysisScanner
   end
 
   def create_flay_summary
-    scans = app.quality_scans.where(scan_type: "flay")
-
-    app.metric_summaries.find_or_initialize_by(scan_type: "flay").tap do |summary|
-      summary.total_issues = scans.count
-      summary.high_severity = scans.where(severity: ["critical", "high"]).count
-      summary.medium_severity = scans.where(severity: "medium").count
-      summary.low_severity = scans.where(severity: "low").count
-      summary.average_score = nil # Not applicable for duplications
-      summary.scanned_at = Time.current
-      summary.save!
-    end
+    create_summary_for_type("flay")
   end
 end

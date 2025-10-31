@@ -1,12 +1,7 @@
 require "shellwords"
 
 class TestCoverageScanner
-  attr_reader :app, :results
-
-  def initialize(app)
-    @app = app
-    @results = []
-  end
+  include ScannerBase
 
   def scan
     return unless app_exists?
@@ -17,8 +12,8 @@ class TestCoverageScanner
 
   private
 
-  def app_exists?
-    File.directory?(app.path)
+  def scan_type
+    "test_coverage"
   end
 
   def run_tests_with_coverage
@@ -34,8 +29,8 @@ class TestCoverageScanner
         parse_coverage_results(coverage_file) if File.exist?(coverage_file)
       end
     end
-  rescue => e
-    Rails.logger.error("Test coverage scan failed for #{app.name}: #{e.message}")
+  rescue StandardError => error
+    Rails.logger.error("Test coverage scan failed for #{app.name}: #{error.message}")
   end
 
   def run_test_suite
@@ -96,19 +91,7 @@ class TestCoverageScanner
     }
   end
 
-  def save_results
-    # Clear old coverage scans
-    app.quality_scans.where(scan_type: "test_coverage").delete_all
-
-    # Create new scans
-    @results.each do |result|
-      app.quality_scans.create!(result)
-    end
-
-    # Create summary
-    create_summary
-  end
-
+  # Override create_summary to add metadata
   def create_summary
     scans = app.quality_scans.where(scan_type: "test_coverage")
     overall = scans.find_by(severity: "info")

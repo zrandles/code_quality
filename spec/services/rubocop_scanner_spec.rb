@@ -18,6 +18,7 @@ RSpec.describe RubocopScanner do
 
     context 'when app directory exists' do
       let(:output_file) { Rails.root.join("tmp", "rubocop_#{scanned_app.name}.json") }
+      let(:target_path) { File.join(scanned_app.path, "app") }
       let(:rubocop_output) do
         {
           "files" => [
@@ -43,7 +44,10 @@ RSpec.describe RubocopScanner do
       end
 
       before do
+        allow(File).to receive(:directory?).and_call_original
         allow(File).to receive(:directory?).with(scanned_app.path).and_return(true)
+        allow(File).to receive(:directory?).with(target_path).and_return(true)
+        allow(File).to receive(:join).and_call_original
         allow(scanner).to receive(:system).and_return(true)
         allow(File).to receive(:exist?).and_call_original
         allow(File).to receive(:exist?).with(output_file).and_return(true)
@@ -121,8 +125,13 @@ RSpec.describe RubocopScanner do
     end
 
     context 'when rubocop output file does not exist' do
+      let(:target_path) { File.join(scanned_app.path, "app") }
+
       before do
+        allow(File).to receive(:directory?).and_call_original
         allow(File).to receive(:directory?).with(scanned_app.path).and_return(true)
+        allow(File).to receive(:directory?).with(target_path).and_return(true)
+        allow(File).to receive(:join).and_call_original
         allow(scanner).to receive(:system).and_return(true)
         allow(File).to receive(:exist?).and_call_original
         allow(File).to receive(:exist?).with(/rubocop.*\.json/).and_return(false)
@@ -136,9 +145,13 @@ RSpec.describe RubocopScanner do
 
     context 'when rubocop fails' do
       let(:output_file) { Rails.root.join("tmp", "rubocop_#{scanned_app.name}.json") }
+      let(:target_path) { File.join(scanned_app.path, "app") }
 
       before do
+        allow(File).to receive(:directory?).and_call_original
         allow(File).to receive(:directory?).with(scanned_app.path).and_return(true)
+        allow(File).to receive(:directory?).with(target_path).and_return(true)
+        allow(File).to receive(:join).and_call_original
         allow(scanner).to receive(:system).and_return(true)
         allow(File).to receive(:exist?).and_call_original
         allow(File).to receive(:exist?).with(output_file).and_return(true)
