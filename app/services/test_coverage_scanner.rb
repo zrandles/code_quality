@@ -1,3 +1,5 @@
+require "shellwords"
+
 class TestCoverageScanner
   attr_reader :app, :results
 
@@ -39,7 +41,9 @@ class TestCoverageScanner
   def run_test_suite
     # This will run the tests and generate SimpleCov results
     # We're using timeout to prevent hanging
-    cmd = "cd #{app.path} && timeout 60 bin/rails test 2>&1"
+    # Sanitize path to prevent command injection
+    app_path = Shellwords.escape(app.path)
+    cmd = "cd #{app_path} && timeout 60 bin/rails test 2>&1"
     system(cmd)
   end
 

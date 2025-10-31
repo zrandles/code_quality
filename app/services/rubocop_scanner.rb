@@ -1,3 +1,5 @@
+require "shellwords"
+
 class RubocopScanner
   attr_reader :app, :results
 
@@ -41,12 +43,36 @@ class RubocopScanner
   end
 
   def run_rubocop
-    output_file = Rails.root.join("tmp", "rubocop_#{app.name}.json")
+    # Sanitize app name for safe filename usage
+    safe_name = app.name.gsub(/[^a-zA-Z0-9_-]/, "_")
+    output_file = Rails.root.join("tmp", "rubocop_#{safe_name}.json")
 
-    # Only run specific cops from code_quality's bundle
-    cops_arg = HIGH_VALUE_COPS.map { |cop| "--only #{cop}" }.join(" ")
-    cmd = "bundle exec rubocop #{cops_arg} --format json --out #{output_file} #{app.path}/app 2>&1"
-    system(cmd)
+    # Validate that app.path exists and is a directory
+    return unless app_exists?
+
+    # Build safe target path
+    target_path = File.join(app.path, "app")
+    return unless File.directory?(target_path)
+
+    # Build command as array to prevent command injection
+    # Array-based system calls don't use shell interpretation
+    cmd = ["bundle", "exec", "rubocop"]
+
+    # Add each cop as separate arguments
+    HIGH_VALUE_COPS.each do |cop|
+      cmd << "--only" << cop
+    end
+
+    # Add output format and file
+    cmd << "--format" << "json"
+    cmd << "--out" << output_file.to_s
+
+    # Add target path as separate argument (no interpolation in array)
+    cmd << target_path
+
+    # brakeman:ignore:Execute - False positive: array-based system calls are safe
+    # Array form doesn't use shell interpretation, and File.join is a safe Ruby method
+    system(*cmd, out: File::NULL, err: File::NULL)
 
     return unless File.exist?(output_file)
 

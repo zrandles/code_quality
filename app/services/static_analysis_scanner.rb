@@ -1,3 +1,5 @@
+require "shellwords"
+
 class StaticAnalysisScanner
   attr_reader :app, :results
 
@@ -25,9 +27,15 @@ class StaticAnalysisScanner
   end
 
   def run_reek
-    output_file = Rails.root.join("tmp", "reek_#{app.name}.json")
+    # Sanitize app name for safe filename usage
+    safe_name = app.name.gsub(/[^a-zA-Z0-9_-]/, "_")
+    output_file = Rails.root.join("tmp", "reek_#{safe_name}.json")
 
-    cmd = "bundle exec reek #{app.path}/app --format json > #{output_file} 2>&1"
+    # Sanitize paths to prevent command injection
+    app_path = Shellwords.escape("#{app.path}/app")
+    output_path = Shellwords.escape(output_file.to_s)
+
+    cmd = "bundle exec reek #{app_path} --format json > #{output_path} 2>&1"
     system(cmd)
 
     return unless File.exist?(output_file)
@@ -62,7 +70,9 @@ class StaticAnalysisScanner
   end
 
   def run_flog
-    output = `bundle exec flog #{app.path}/app 2>&1`
+    # Sanitize path to prevent command injection
+    app_path = Shellwords.escape("#{app.path}/app")
+    output = `bundle exec flog #{app_path} 2>&1`
     parse_flog_results(output)
   rescue => e
     Rails.logger.error("Flog scan failed for #{app.name}: #{e.message}")
@@ -95,7 +105,9 @@ class StaticAnalysisScanner
   end
 
   def run_flay
-    output = `bundle exec flay #{app.path}/app 2>&1`
+    # Sanitize path to prevent command injection
+    app_path = Shellwords.escape("#{app.path}/app")
+    output = `bundle exec flay #{app_path} 2>&1`
     parse_flay_results(output)
   rescue => e
     Rails.logger.error("Flay scan failed for #{app.name}: #{e.message}")

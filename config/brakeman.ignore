@@ -1,0 +1,29 @@
+{
+  "ignored_warnings": [
+    {
+      "warning_type": "Command Injection",
+      "warning_code": 14,
+      "fingerprint": "befaef237e1aabf544cd57eb3fe12e5a466a779d47a80ca44a889b474222b04f",
+      "check_name": "Execute",
+      "message": "Possible command injection",
+      "file": "app/services/rubocop_scanner.rb",
+      "line": 75,
+      "link": "https://brakemanscanner.org/docs/warning_types/command_injection/",
+      "code": "system(*[\"bundle\", \"exec\", \"rubocop\", \"--only\", :BRAKEMAN_SAFE_LITERAL, \"--format\", \"json\", \"--out\", Rails.root.join(\"tmp\", \"rubocop_#{app.name.gsub(/[^a-zA-Z0-9_-]/, \"_\")}.json\").to_s, File.join(app.path, \"app\")], :out => (File::NULL), :err => (File::NULL))",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "RubocopScanner",
+        "method": "run_rubocop"
+      },
+      "user_input": "app.name.gsub(/[^a-zA-Z0-9_-]/, \"_\")",
+      "confidence": "Medium",
+      "cwe_id": [
+        77
+      ],
+      "note": "False positive: Using array-based system() call which doesn't invoke shell. File.join is safe Ruby method. app.name is sanitized with gsub. No command injection possible."
+    }
+  ],
+  "updated": "2025-10-31 00:00:00 +0000",
+  "brakeman_version": "7.1.0"
+}

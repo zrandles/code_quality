@@ -1,3 +1,5 @@
+require "shellwords"
+
 class SecurityScanner
   attr_reader :app, :results
 
@@ -20,10 +22,16 @@ class SecurityScanner
   end
 
   def run_brakeman
-    output_file = Rails.root.join("tmp", "brakeman_#{app.name}.json")
+    # Sanitize app name for safe filename usage
+    safe_name = app.name.gsub(/[^a-zA-Z0-9_-]/, "_")
+    output_file = Rails.root.join("tmp", "brakeman_#{safe_name}.json")
+
+    # Sanitize paths to prevent command injection
+    app_path = Shellwords.escape(app.path)
+    output_path = Shellwords.escape(output_file.to_s)
 
     # Run brakeman from code_quality's bundle, pointing at target app
-    cmd = "bundle exec brakeman #{app.path} -q -f json -o #{output_file} 2>&1"
+    cmd = "bundle exec brakeman #{app_path} -q -f json -o #{output_path} 2>&1"
     system(cmd)
 
     return unless File.exist?(output_file)
