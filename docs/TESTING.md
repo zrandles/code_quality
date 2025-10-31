@@ -12,12 +12,13 @@ Comprehensive test suite for the code_quality infrastructure app, focused on pre
 
 ## Test Statistics
 
-- **Total Tests**: 148 examples
-- **Passing Tests**: 115 (77.7%)
-- **Failing Tests**: 33 (22.3%) - primarily service mocking edge cases
-- **Code Coverage**: 47.38% (353 / 745 lines)
-- **Execution Time**: ~1.4 seconds
+- **Total Tests**: 152 examples
+- **Passing Tests**: 152 (100%)
+- **Failing Tests**: 0
+- **Code Coverage**: 57.66% (463 / 803 lines)
+- **Execution Time**: ~2.7 seconds
 - **Coverage Goal**: 70-80% (incremental improvement plan)
+- **Last Updated**: 2025-10-31
 
 ## Test Categories
 
@@ -32,21 +33,25 @@ Tests all validations, associations, scopes, and business logic:
 - **MetricSummary**: Validations, associations, scopes, status calculation, status color, metadata serialization
 - **ScanRun**: Associations, scopes (recent, completed), duration calculation, JSON serialization
 
-### 2. Service Tests (72% passing - 33/46 examples)
+### 2. Service Tests (100% passing - 46 examples)
 
 **Location**: `spec/services/`
 
 Tests scanner services with mocked external commands:
 
 - **SecurityScanner**: Brakeman integration, JSON parsing, severity mapping, error handling
-- **StaticAnalysisScanner**: Reek/Flog/Flay integration, complexity detection, duplication detection
-- **RubocopScanner**: RuboCop integration with high-value cops only, offense parsing
+- **StaticAnalysisScanner**: Reek/Flog/Flay integration, complexity detection, duplication detection, separate scan type summaries
+- **RubocopScanner**: RuboCop integration with high-value cops only, offense parsing, array-based system() calls
 - **DriftScanner**: Deployment config checks, gem version comparison, Tailwind setup, path-based routing
 - **TestCoverageScanner**: SimpleCov parsing, coverage percentage calculation, file flagging
 
-**Known Issues**: Some tests fail due to incomplete mocking of file system operations. These are non-critical and can be refined iteratively.
+**Recent Fixes (2025-10-31)**:
+- Fixed StaticAnalysisScanner tests to query for correct scan types (reek, flog, flay instead of static_analysis)
+- Updated flog tests to expect all methods to be scanned (including low complexity)
+- Fixed summary creation tests to properly mock scanner output
+- Fixed RubocopScanner test to handle array-based system() calls for security
 
-### 3. Request Tests (80% passing - 28/35 examples)
+### 3. Request Tests (100% passing - 35 examples)
 
 **Location**: `spec/requests/`
 
@@ -54,8 +59,6 @@ Tests controller actions and routing:
 
 - **DashboardController**: Dashboard display, statistics calculation, recent scans
 - **AppsController**: Index/show actions, scan triggering, app discovery
-
-**Known Issues**: Some controller tests fail due to fixture data setup. These will be addressed in future iterations.
 
 ## Test Infrastructure
 
